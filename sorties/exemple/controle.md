@@ -1,0 +1,73 @@
+# Tableau de contrôle
+
+Jeu de données fictif — graine 42 — collecte du 2026-02-12 au 2027-02-12
+
+| Indicateur | Service | Valeur | Cible min | Cible max | Statut |
+| --- | --- | --- | --- | --- | --- |
+| taux_occupation | UHCD | 0.73 | 0.689 | 0.869 | OK |
+| taux_occupation | REA | 0.817 | 0.723 | 0.873 | OK |
+| taux_occupation | USC | 0.777 | 0.661 | 0.831 | OK |
+| taux_occupation | USIC | 0.732 | 0.629 | 0.824 | OK |
+| taux_occupation | CARDIO | 0.903 | 0.878 | 1.0 | OK |
+| taux_occupation | PNEUMO | 0.898 | 0.85 | 0.99 | OK |
+| taux_occupation | MED_INT | 0.899 | 0.85 | 0.985 | OK |
+| taux_occupation | GERIA | 0.894 | 0.848 | 0.983 | OK |
+| taux_occupation | NEURO | 0.847 | 0.803 | 0.943 | OK |
+| taux_occupation | GASTRO | 0.847 | 0.787 | 0.928 | OK |
+| taux_occupation | ONCO | 0.871 | 0.788 | 0.928 | OK |
+| taux_occupation | MED_POLY | 0.891 | 0.817 | 0.952 | OK |
+| taux_occupation | ORTHO | 0.85 | 0.747 | 0.883 | OK |
+| taux_occupation | CHIR_DIG | 0.829 | 0.744 | 0.883 | OK |
+| taux_occupation | URO | 0.782 | 0.722 | 0.869 | OK |
+| taux_occupation | GYN_OBS | 0.766 | 0.694 | 0.832 | OK |
+| taux_occupation | PED | 0.704 | 0.641 | 0.783 | OK |
+| dms_j | CARDIO | 5.31 | 4.46 | 6.04 | OK |
+| dms_j | CHIR_DIG | 5.12 | 4.35 | 5.89 | OK |
+| dms_j | GASTRO | 3.95 | 3.27 | 4.43 | OK |
+| dms_j | GERIA | 13.84 | 11.39 | 15.41 | OK |
+| dms_j | GYN_OBS | 2.97 | 2.5 | 3.39 | OK |
+| dms_j | MED_INT | 6.37 | 5.41 | 7.32 | OK |
+| dms_j | MED_POLY | 7.23 | 6.24 | 8.45 | OK |
+| dms_j | NEURO | 6.1 | 5.15 | 6.96 | OK |
+| dms_j | ONCO | 5.13 | 4.3 | 5.82 | OK |
+| dms_j | ORTHO | 5.03 | 4.23 | 5.73 | OK |
+| dms_j | PED | 1.63 | 1.35 | 1.83 | OK |
+| dms_j | PNEUMO | 7.15 | 6.14 | 8.31 | OK |
+| dms_j | REA | 4.08 | 3.48 | 4.71 | OK |
+| dms_j | UHCD | 0.88 | 0.8 | 1.08 | OK |
+| dms_j | URO | 3.01 | 2.56 | 3.46 | OK |
+| dms_j | USC | 2.77 | 2.31 | 3.13 | OK |
+| dms_j | USIC | 3.29 | 2.56 | 3.46 | OK |
+| part_sejours_urgences |  | 0.342 | 0.295 | 0.395 | OK |
+| nb_rum_moyen |  | 1.28 | 1.07 | 1.37 | OK |
+| taux_hospitalisation_urgences |  | 0.216 | 0.19 | 0.25 | OK |
+| taux_hebergement |  | 0.095 | 0.0 | 0.12 | OK |
+| attente_mediane_urgences_h |  | 0.0 | 0.0 | 6.0 | OK |
+| attente_moyenne_urgences_h |  | 1.64 |  |  |  |
+| taux_transfert_faute_de_lit |  | 0.0123 | 0.0 | 0.03 | OK |
+| taux_rehospitalisation_30j |  | 0.02 |  |  |  |
+
+## Trajectoires les plus fréquentes : catalogue contre simulation
+
+| Trajectoire | Part catalogue | Part simulée | Écart |
+| --- | --- | --- | --- |
+| PED | 0.166 | 0.147 | -0.019 |
+| GYN_OBS | 0.118 | 0.108 | -0.010 |
+| GASTRO | 0.074 | 0.069 | -0.005 |
+| UHCD | 0.070 | 0.067 | -0.003 |
+| URO | 0.066 | 0.060 | -0.005 |
+| ORTHO | 0.064 | 0.065 | +0.000 |
+| ONCO | 0.062 | 0.059 | -0.003 |
+| MED_INT | 0.056 | 0.050 | -0.006 |
+| CHIR_DIG | 0.056 | 0.054 | -0.002 |
+| CARDIO | 0.051 | 0.048 | -0.003 |
+| NEURO | 0.048 | 0.046 | -0.002 |
+| MED_POLY | 0.040 | 0.038 | -0.002 |
+| PNEUMO | 0.039 | 0.036 | -0.003 |
+| GERIA | 0.028 | 0.026 | -0.002 |
+| USIC > CARDIO | 0.008 | 0.008 | -0.000 |
+| UHCD > MED_POLY | 0.007 | 0.009 | +0.001 |
+| REA > MED_POLY | 0.005 | 0.006 | +0.001 |
+| UHCD > PNEUMO | 0.004 | 0.005 | +0.001 |
+| UHCD > CARDIO | 0.003 | 0.004 | +0.001 |
+| REA | 0.003 | 0.004 | +0.001 |

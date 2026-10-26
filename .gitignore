@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+.venv/
+# sorties de simulation (sauf l'exemple versionné)
+sorties/*
+!sorties/exemple/
+sorties/exemple/*.parquet

@@ -1,0 +1,35 @@
+[project]
+name = "gen-admissions"
+version = "0.1.0"
+description = "Générateur de données administratives hospitalières fictives (urgences, séjours, mouvements) par simulation à événements discrets"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "simpy>=4.1",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+    "pyyaml>=6.0",
+    "pyarrow>=14.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "jupyter", "ruff"]
+
+[project.scripts]
+gen-admissions = "gen_admissions.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["gen_admissions*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 140

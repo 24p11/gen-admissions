@@ -1,0 +1,20 @@
+{
+  "avertissement": "DONNÉES FICTIVES générées par simulation : aucun patient réel.",
+  "generateur": "gen-admissions 0.1.0",
+  "etablissement": "HOPITAL_FICTIF_480",
+  "parametres": "parametres/hopital_type",
+  "graine": 42,
+  "debut_collecte": "2026-02-12 00:00",
+  "fin_collecte": "2027-02-12 00:00",
+  "chauffe_jours": 42.0,
+  "date_generation": "2026-10-26 12:45",
+  "tables": {
+    "rpu": 45190,
+    "rss": 28514,
+    "rum": 36513,
+    "mouvements": 65027,
+    "verite_sejours": 28514,
+    "verite_passages": 45190,
+    "patients": 70524
+  }
+}

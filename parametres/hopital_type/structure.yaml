@@ -1,0 +1,166 @@
+etablissement: HOPITAL_FICTIF_480
+description: Hôpital fictif d'environ 480 lits, paramètres fabriqués par scripts/fabriquer_parametres.py
+debut: '2026-01-01'
+unite_de_temps: heure
+classes_age:
+- 0-17
+- 18-64
+- 65-79
+- 80+
+services:
+  URG:
+    libelle: Urgences
+    type: urgences
+    lits: 0
+    hebergement: []
+  UHCD:
+    libelle: Unité d'hospitalisation de courte durée
+    type: uhcd
+    lits: 10
+    hebergement:
+    - MED_POLY
+  REA:
+    libelle: Réanimation
+    type: reanimation
+    lits: 20
+    hebergement: []
+  USC:
+    libelle: Soins continus
+    type: soins_continus
+    lits: 12
+    hebergement: []
+  USIC:
+    libelle: Soins intensifs cardiologiques
+    type: soins_intensifs
+    lits: 8
+    hebergement: []
+  CARDIO:
+    libelle: Cardiologie
+    type: medecine
+    lits: 36
+    hebergement:
+    - MED_INT
+    - PNEUMO
+    - MED_POLY
+  PNEUMO:
+    libelle: Pneumologie
+    type: medecine
+    lits: 30
+    hebergement:
+    - MED_INT
+    - CARDIO
+    - MED_POLY
+  MED_INT:
+    libelle: Médecine interne
+    type: medecine
+    lits: 40
+    hebergement:
+    - PNEUMO
+    - MED_POLY
+    - GASTRO
+  GERIA:
+    libelle: Gériatrie aiguë
+    type: medecine
+    lits: 40
+    hebergement:
+    - MED_INT
+    - MED_POLY
+    age_min: 75
+  NEURO:
+    libelle: Neurologie
+    type: medecine
+    lits: 30
+    hebergement:
+    - MED_INT
+    - MED_POLY
+  GASTRO:
+    libelle: Gastro-entérologie
+    type: medecine
+    lits: 28
+    hebergement:
+    - MED_INT
+    - CHIR_DIG
+  ONCO:
+    libelle: Oncologie-hématologie
+    type: medecine
+    lits: 30
+    hebergement:
+    - MED_INT
+  MED_POLY:
+    libelle: Médecine polyvalente post-urgences
+    type: medecine
+    lits: 40
+    hebergement:
+    - MED_INT
+    - GERIA
+    - PNEUMO
+  ORTHO:
+    libelle: Orthopédie-traumatologie
+    type: chirurgie
+    lits: 36
+    hebergement:
+    - CHIR_DIG
+    - URO
+  CHIR_DIG:
+    libelle: Chirurgie digestive
+    type: chirurgie
+    lits: 32
+    hebergement:
+    - ORTHO
+    - URO
+  URO:
+    libelle: Urologie
+    type: chirurgie
+    lits: 22
+    hebergement:
+    - CHIR_DIG
+    - ORTHO
+  GYN_OBS:
+    libelle: Gynécologie-obstétrique
+    type: obstetrique
+    lits: 34
+    hebergement: []
+    sexe: F
+  PED:
+    libelle: Pédiatrie
+    type: pediatrie
+    lits: 28
+    hebergement: []
+    age_max: 17
+urgences:
+  passages_par_an: 45000
+  delai_max_attente_h: 6
+  delai_transfert_h: 24
+  pas_reessai_h: 1
+regles:
+  delai_max_attente_mutation_h: 12
+  retour_service_origine: true
+  duree_min_restante_pour_retour_h: 12
+  priorite_par_gravite:
+    1: 2
+    2: 2
+    3: 1
+    4: 0
+    5: 0
+  priorite_programme: 2
+  priorite_mutation: 1
+sorties:
+  facteur_weekend: 0.45
+  services_sans_effet_weekend:
+  - UHCD
+  - REA
+  - USC
+  - USIC
+population:
+  probabilite_retour:
+    0-17: 0.1
+    18-64: 0.12
+    65-79: 0.2
+    80+: 0.28
+simulation:
+  duree_jours: 365
+  chauffe_jours: 42
+  marge_fin_jours: 60
+  graine: 42
+confidentialite:
+  seuil_effectif: 20

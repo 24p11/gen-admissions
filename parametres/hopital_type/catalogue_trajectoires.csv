@@ -1,0 +1,393 @@
+trajectoire,mode_entree,classe_age,sexe,mode_sortie,effectif
+PED,programme,0-17,F,domicile,5511
+PED,programme,0-17,F,transfert,109
+ORTHO,programme,0-17,F,domicile,50
+CHIR_DIG,programme,0-17,F,domicile,46
+PED > USC > PED,programme,0-17,F,domicile,43
+PED > REA > PED,programme,0-17,F,domicile,39
+PED,programme,0-17,F,deces,24
+PED,programme,0-17,M,domicile,5905
+PED,programme,0-17,M,transfert,138
+URO,programme,0-17,M,domicile,67
+ORTHO,programme,0-17,M,domicile,60
+CHIR_DIG,programme,0-17,M,domicile,55
+PED > REA > PED,programme,0-17,M,domicile,48
+PED > USC > PED,programme,0-17,M,domicile,43
+PED,programme,0-17,M,deces,20
+GYN_OBS,programme,18-64,F,domicile,7887
+GASTRO,programme,18-64,F,domicile,1281
+ONCO,programme,18-64,F,domicile,1005
+CHIR_DIG,programme,18-64,F,domicile,979
+ORTHO,programme,18-64,F,domicile,918
+MED_INT,programme,18-64,F,domicile,866
+NEURO,programme,18-64,F,domicile,652
+URO,programme,18-64,F,domicile,608
+CARDIO,programme,18-64,F,domicile,566
+PNEUMO,programme,18-64,F,domicile,360
+MED_POLY,programme,18-64,F,domicile,99
+ONCO,programme,18-64,F,deces,92
+GYN_OBS,programme,18-64,F,transfert,87
+ONCO,programme,18-64,F,SSR,79
+GYN_OBS > USC > GYN_OBS,programme,18-64,F,domicile,75
+ONCO,programme,18-64,F,transfert,40
+NEURO,programme,18-64,F,SSR,36
+CHIR_DIG > USC > CHIR_DIG,programme,18-64,F,domicile,34
+GYN_OBS > USC,programme,18-64,F,domicile,34
+ONCO > MED_INT,programme,18-64,F,domicile,34
+GASTRO,programme,18-64,F,SSR,32
+ORTHO > USC > ORTHO,programme,18-64,F,domicile,32
+GASTRO,programme,18-64,F,transfert,29
+GYN_OBS > REA > GYN_OBS,programme,18-64,F,domicile,29
+CHIR_DIG,programme,18-64,F,SSR,21
+CHIR_DIG > MED_INT,programme,18-64,F,domicile,20
+MED_INT,programme,18-64,F,SSR,20
+ONCO > USC > ONCO,programme,18-64,F,domicile,20
+URO,programme,18-64,M,domicile,1562
+GASTRO,programme,18-64,M,domicile,1322
+CHIR_DIG,programme,18-64,M,domicile,1002
+ONCO,programme,18-64,M,domicile,949
+ORTHO,programme,18-64,M,domicile,948
+MED_INT,programme,18-64,M,domicile,828
+NEURO,programme,18-64,M,domicile,640
+CARDIO,programme,18-64,M,domicile,470
+PNEUMO,programme,18-64,M,domicile,355
+ONCO,programme,18-64,M,deces,123
+MED_POLY,programme,18-64,M,domicile,116
+ONCO,programme,18-64,M,SSR,65
+NEURO,programme,18-64,M,SSR,43
+ONCO,programme,18-64,M,transfert,43
+CHIR_DIG > USC > CHIR_DIG,programme,18-64,M,domicile,40
+ONCO > MED_INT,programme,18-64,M,domicile,40
+URO,programme,18-64,M,SSR,39
+URO > USC > URO,programme,18-64,M,domicile,38
+ORTHO > USC > ORTHO,programme,18-64,M,domicile,29
+CHIR_DIG,programme,18-64,M,SSR,27
+URO > REA > URO,programme,18-64,M,domicile,27
+GASTRO,programme,18-64,M,SSR,26
+GASTRO,programme,18-64,M,transfert,26
+URO > MED_INT,programme,18-64,M,domicile,26
+URO,programme,18-64,M,transfert,23
+GASTRO > USC > GASTRO,programme,18-64,M,domicile,22
+MED_INT,programme,18-64,M,SSR,22
+ORTHO > MED_INT,programme,18-64,M,domicile,21
+URO > USC,programme,18-64,M,domicile,21
+CHIR_DIG > MED_INT,programme,18-64,M,domicile,20
+ONCO > USC > ONCO,programme,18-64,M,domicile,20
+GASTRO,programme,65-79,F,domicile,780
+ONCO,programme,65-79,F,domicile,676
+CHIR_DIG,programme,65-79,F,domicile,523
+GYN_OBS,programme,65-79,F,domicile,496
+ORTHO,programme,65-79,F,domicile,490
+URO,programme,65-79,F,domicile,489
+CARDIO,programme,65-79,F,domicile,409
+MED_INT,programme,65-79,F,domicile,403
+NEURO,programme,65-79,F,domicile,352
+PNEUMO,programme,65-79,F,domicile,297
+MED_POLY,programme,65-79,F,domicile,97
+ONCO,programme,65-79,F,deces,92
+ONCO,programme,65-79,F,SSR,70
+GERIA,programme,65-79,F,domicile,42
+NEURO,programme,65-79,F,SSR,41
+GASTRO,programme,65-79,F,SSR,40
+ORTHO,programme,65-79,F,SSR,40
+CHIR_DIG,programme,65-79,F,SSR,36
+GASTRO,programme,65-79,F,transfert,32
+URO,programme,65-79,F,SSR,30
+MED_INT,programme,65-79,F,SSR,29
+GERIA,programme,65-79,F,SSR,26
+CARDIO,programme,65-79,F,SSR,24
+GASTRO,programme,65-79,F,deces,21
+URO,programme,65-79,M,domicile,1277
+GASTRO,programme,65-79,M,domicile,745
+ONCO,programme,65-79,M,domicile,732
+CHIR_DIG,programme,65-79,M,domicile,479
+ORTHO,programme,65-79,M,domicile,479
+MED_INT,programme,65-79,M,domicile,418
+CARDIO,programme,65-79,M,domicile,408
+NEURO,programme,65-79,M,domicile,344
+PNEUMO,programme,65-79,M,domicile,263
+URO,programme,65-79,M,SSR,100
+MED_POLY,programme,65-79,M,domicile,96
+ONCO,programme,65-79,M,deces,84
+GASTRO,programme,65-79,M,SSR,60
+ONCO,programme,65-79,M,SSR,59
+ONCO,programme,65-79,M,transfert,38
+GERIA,programme,65-79,M,domicile,37
+MED_INT,programme,65-79,M,SSR,35
+ONCO > MED_INT,programme,65-79,M,domicile,33
+URO > USC > URO,programme,65-79,M,domicile,32
+ORTHO,programme,65-79,M,SSR,31
+CARDIO,programme,65-79,M,SSR,30
+CHIR_DIG,programme,65-79,M,SSR,30
+NEURO,programme,65-79,M,SSR,29
+URO > MED_INT,programme,65-79,M,domicile,26
+URO > REA > URO,programme,65-79,M,domicile,23
+GERIA,programme,65-79,M,SSR,21
+PNEUMO,programme,65-79,M,SSR,20
+ONCO,programme,80+,F,domicile,219
+GASTRO,programme,80+,F,domicile,213
+MED_INT,programme,80+,F,domicile,206
+GYN_OBS,programme,80+,F,domicile,178
+CARDIO,programme,80+,F,domicile,142
+URO,programme,80+,F,domicile,137
+ORTHO,programme,80+,F,domicile,128
+GERIA,programme,80+,F,domicile,122
+NEURO,programme,80+,F,domicile,122
+CHIR_DIG,programme,80+,F,domicile,108
+PNEUMO,programme,80+,F,domicile,105
+GERIA,programme,80+,F,SSR,87
+MED_POLY,programme,80+,F,domicile,72
+ORTHO,programme,80+,F,SSR,67
+GERIA,programme,80+,F,EHPAD,41
+ONCO,programme,80+,F,deces,39
+GASTRO,programme,80+,F,SSR,31
+CARDIO,programme,80+,F,SSR,25
+GERIA,programme,80+,F,deces,25
+MED_INT,programme,80+,F,SSR,25
+URO,programme,80+,F,SSR,24
+ONCO,programme,80+,F,SSR,22
+URO,programme,80+,M,domicile,358
+ONCO,programme,80+,M,domicile,224
+GASTRO,programme,80+,M,domicile,207
+MED_INT,programme,80+,M,domicile,155
+CARDIO,programme,80+,M,domicile,150
+NEURO,programme,80+,M,domicile,120
+ORTHO,programme,80+,M,domicile,111
+CHIR_DIG,programme,80+,M,domicile,107
+PNEUMO,programme,80+,M,domicile,104
+GERIA,programme,80+,M,domicile,99
+ORTHO,programme,80+,M,SSR,79
+GERIA,programme,80+,M,SSR,66
+MED_POLY,programme,80+,M,domicile,65
+URO,programme,80+,M,SSR,64
+GASTRO,programme,80+,M,SSR,37
+NEURO,programme,80+,M,SSR,33
+MED_INT,programme,80+,M,SSR,29
+CARDIO,programme,80+,M,SSR,26
+GERIA,programme,80+,M,EHPAD,23
+GERIA,programme,80+,M,deces,23
+ONCO,programme,80+,M,deces,23
+CHIR_DIG,programme,80+,M,SSR,20
+PED,urgences,0-17,F,domicile,551
+UHCD,urgences,0-17,F,domicile,71
+UHCD > PED,urgences,0-17,F,domicile,21
+PED,urgences,0-17,M,domicile,598
+UHCD,urgences,0-17,M,domicile,95
+ORTHO,urgences,0-17,M,domicile,27
+CHIR_DIG,urgences,0-17,M,domicile,20
+UHCD,urgences,18-64,F,domicile,818
+GYN_OBS,urgences,18-64,F,domicile,422
+ORTHO,urgences,18-64,F,domicile,223
+MED_POLY,urgences,18-64,F,domicile,201
+CHIR_DIG,urgences,18-64,F,domicile,172
+NEURO,urgences,18-64,F,domicile,172
+MED_INT,urgences,18-64,F,domicile,160
+GASTRO,urgences,18-64,F,domicile,141
+CARDIO,urgences,18-64,F,domicile,136
+PNEUMO,urgences,18-64,F,domicile,132
+UHCD > MED_POLY,urgences,18-64,F,domicile,84
+REA > MED_POLY,urgences,18-64,F,domicile,79
+USIC > CARDIO,urgences,18-64,F,domicile,67
+UHCD > CARDIO,urgences,18-64,F,domicile,52
+UHCD > PNEUMO,urgences,18-64,F,domicile,45
+UHCD > MED_INT,urgences,18-64,F,domicile,42
+UHCD > GASTRO,urgences,18-64,F,domicile,38
+REA,urgences,18-64,F,deces,35
+UHCD > NEURO,urgences,18-64,F,domicile,35
+REA > USC > MED_INT,urgences,18-64,F,domicile,33
+UHCD,urgences,18-64,F,transfert,29
+ONCO,urgences,18-64,F,domicile,26
+UHCD > ORTHO,urgences,18-64,F,domicile,23
+USIC,urgences,18-64,F,domicile,23
+UHCD,urgences,18-64,M,domicile,930
+ORTHO,urgences,18-64,M,domicile,266
+MED_POLY,urgences,18-64,M,domicile,224
+CHIR_DIG,urgences,18-64,M,domicile,206
+MED_INT,urgences,18-64,M,domicile,173
+CARDIO,urgences,18-64,M,domicile,169
+NEURO,urgences,18-64,M,domicile,156
+GASTRO,urgences,18-64,M,domicile,149
+PNEUMO,urgences,18-64,M,domicile,135
+UHCD > MED_POLY,urgences,18-64,M,domicile,105
+REA > MED_POLY,urgences,18-64,M,domicile,102
+UHCD > PNEUMO,urgences,18-64,M,domicile,81
+URO,urgences,18-64,M,domicile,75
+USIC > CARDIO,urgences,18-64,M,domicile,74
+UHCD > CARDIO,urgences,18-64,M,domicile,54
+UHCD > MED_INT,urgences,18-64,M,domicile,54
+UHCD > NEURO,urgences,18-64,M,domicile,53
+REA,urgences,18-64,M,deces,44
+REA > USC > MED_INT,urgences,18-64,M,domicile,42
+UHCD,urgences,18-64,M,transfert,36
+UHCD > GASTRO,urgences,18-64,M,domicile,35
+USIC,urgences,18-64,M,domicile,29
+ONCO,urgences,18-64,M,domicile,28
+UHCD > CHIR_DIG,urgences,18-64,M,domicile,26
+NEURO,urgences,18-64,M,SSR,24
+REA > USC,urgences,18-64,M,domicile,22
+UHCD > ORTHO,urgences,18-64,M,domicile,20
+UHCD > USIC > CARDIO,urgences,18-64,M,domicile,20
+UHCD,urgences,65-79,F,domicile,787
+MED_POLY,urgences,65-79,F,domicile,371
+CARDIO,urgences,65-79,F,domicile,250
+MED_INT,urgences,65-79,F,domicile,229
+PNEUMO,urgences,65-79,F,domicile,212
+ORTHO,urgences,65-79,F,domicile,202
+NEURO,urgences,65-79,F,domicile,166
+CHIR_DIG,urgences,65-79,F,domicile,139
+GASTRO,urgences,65-79,F,domicile,138
+USIC > CARDIO,urgences,65-79,F,domicile,122
+UHCD > MED_POLY,urgences,65-79,F,domicile,83
+URO,urgences,65-79,F,domicile,83
+REA > MED_POLY,urgences,65-79,F,domicile,82
+MED_POLY,urgences,65-79,F,SSR,66
+NEURO,urgences,65-79,F,SSR,61
+UHCD > PNEUMO,urgences,65-79,F,domicile,60
+CARDIO,urgences,65-79,F,SSR,53
+REA,urgences,65-79,F,deces,53
+USIC,urgences,65-79,F,domicile,45
+GYN_OBS,urgences,65-79,F,domicile,44
+REA > USC > MED_INT,urgences,65-79,F,domicile,44
+UHCD > CARDIO,urgences,65-79,F,domicile,39
+UHCD > MED_INT,urgences,65-79,F,domicile,37
+MED_INT,urgences,65-79,F,SSR,35
+ONCO,urgences,65-79,F,domicile,35
+PNEUMO,urgences,65-79,F,SSR,34
+UHCD > NEURO,urgences,65-79,F,domicile,31
+UHCD > CHIR_DIG,urgences,65-79,F,domicile,27
+REA > USC,urgences,65-79,F,domicile,25
+UHCD,urgences,65-79,F,transfert,25
+GASTRO,urgences,65-79,F,SSR,24
+UHCD > ORTHO,urgences,65-79,F,domicile,24
+UHCD > GASTRO,urgences,65-79,F,domicile,23
+CARDIO > USIC > CARDIO,urgences,65-79,F,domicile,21
+MED_POLY,urgences,65-79,F,deces,20
+UHCD,urgences,65-79,M,domicile,850
+MED_POLY,urgences,65-79,M,domicile,363
+CARDIO,urgences,65-79,M,domicile,279
+PNEUMO,urgences,65-79,M,domicile,268
+NEURO,urgences,65-79,M,domicile,241
+MED_INT,urgences,65-79,M,domicile,234
+ORTHO,urgences,65-79,M,domicile,225
+CHIR_DIG,urgences,65-79,M,domicile,153
+USIC > CARDIO,urgences,65-79,M,domicile,130
+GASTRO,urgences,65-79,M,domicile,127
+UHCD > MED_POLY,urgences,65-79,M,domicile,103
+REA > MED_POLY,urgences,65-79,M,domicile,88
+MED_POLY,urgences,65-79,M,SSR,63
+URO,urgences,65-79,M,domicile,63
+UHCD > PNEUMO,urgences,65-79,M,domicile,61
+NEURO,urgences,65-79,M,SSR,55
+REA > USC > MED_INT,urgences,65-79,M,domicile,54
+PNEUMO,urgences,65-79,M,SSR,52
+USIC,urgences,65-79,M,domicile,52
+CARDIO,urgences,65-79,M,SSR,51
+REA,urgences,65-79,M,deces,51
+UHCD > MED_INT,urgences,65-79,M,domicile,45
+MED_INT,urgences,65-79,M,SSR,43
+UHCD > GASTRO,urgences,65-79,M,domicile,43
+UHCD > CARDIO,urgences,65-79,M,domicile,36
+UHCD > NEURO,urgences,65-79,M,domicile,34
+ONCO,urgences,65-79,M,domicile,31
+REA > USC,urgences,65-79,M,domicile,28
+UHCD,urgences,65-79,M,transfert,27
+REA,urgences,65-79,M,transfert,26
+CARDIO > USIC > CARDIO,urgences,65-79,M,domicile,25
+UHCD > ORTHO,urgences,65-79,M,domicile,25
+REA > MED_POLY,urgences,65-79,M,SSR,23
+UHCD > CHIR_DIG,urgences,65-79,M,domicile,23
+CARDIO,urgences,65-79,M,deces,22
+GASTRO,urgences,65-79,M,SSR,22
+USIC > CARDIO,urgences,65-79,M,SSR,22
+UHCD,urgences,80+,F,domicile,1014
+GERIA,urgences,80+,F,domicile,426
+MED_POLY,urgences,80+,F,domicile,405
+GERIA,urgences,80+,F,SSR,279
+ORTHO,urgences,80+,F,domicile,246
+PNEUMO,urgences,80+,F,domicile,231
+MED_POLY,urgences,80+,F,SSR,217
+CARDIO,urgences,80+,F,domicile,203
+MED_INT,urgences,80+,F,domicile,179
+NEURO,urgences,80+,F,domicile,137
+CARDIO,urgences,80+,F,SSR,132
+ORTHO,urgences,80+,F,SSR,123
+GERIA,urgences,80+,F,EHPAD,119
+GERIA,urgences,80+,F,deces,112
+CHIR_DIG,urgences,80+,F,domicile,111
+NEURO,urgences,80+,F,SSR,106
+PNEUMO,urgences,80+,F,SSR,105
+GASTRO,urgences,80+,F,domicile,100
+MED_INT,urgences,80+,F,SSR,83
+UHCD > MED_POLY,urgences,80+,F,domicile,81
+MED_POLY,urgences,80+,F,deces,70
+USIC > CARDIO,urgences,80+,F,domicile,70
+MED_POLY,urgences,80+,F,EHPAD,69
+UHCD > GERIA,urgences,80+,F,domicile,59
+USIC,urgences,80+,F,domicile,58
+URO,urgences,80+,F,domicile,52
+PNEUMO,urgences,80+,F,EHPAD,51
+CARDIO,urgences,80+,F,deces,44
+USIC > CARDIO,urgences,80+,F,SSR,44
+CARDIO,urgences,80+,F,EHPAD,43
+UHCD > GERIA,urgences,80+,F,SSR,41
+UHCD > PNEUMO,urgences,80+,F,domicile,41
+UHCD,urgences,80+,F,transfert,39
+GASTRO,urgences,80+,F,SSR,37
+PNEUMO,urgences,80+,F,deces,37
+REA,urgences,80+,F,deces,34
+UHCD > CARDIO,urgences,80+,F,domicile,34
+UHCD > GASTRO,urgences,80+,F,domicile,34
+UHCD > MED_POLY,urgences,80+,F,SSR,34
+MED_INT,urgences,80+,F,EHPAD,32
+REA > MED_POLY,urgences,80+,F,domicile,32
+UHCD > MED_INT,urgences,80+,F,domicile,30
+UHCD > NEURO,urgences,80+,F,domicile,30
+UHCD > CARDIO,urgences,80+,F,SSR,27
+NEURO,urgences,80+,F,EHPAD,25
+UHCD > CHIR_DIG,urgences,80+,F,domicile,25
+UHCD > GERIA,urgences,80+,F,EHPAD,23
+GERIA,urgences,80+,F,transfert,22
+GASTRO,urgences,80+,F,EHPAD,21
+UHCD > MED_INT,urgences,80+,F,SSR,21
+USIC > CARDIO,urgences,80+,F,deces,21
+NEURO,urgences,80+,F,deces,20
+UHCD,urgences,80+,M,domicile,666
+MED_POLY,urgences,80+,M,domicile,278
+GERIA,urgences,80+,M,domicile,241
+GERIA,urgences,80+,M,SSR,190
+ORTHO,urgences,80+,M,domicile,183
+PNEUMO,urgences,80+,M,domicile,171
+CARDIO,urgences,80+,M,domicile,156
+MED_POLY,urgences,80+,M,SSR,132
+MED_INT,urgences,80+,M,domicile,105
+NEURO,urgences,80+,M,domicile,94
+CARDIO,urgences,80+,M,SSR,89
+GERIA,urgences,80+,M,EHPAD,88
+ORTHO,urgences,80+,M,SSR,87
+CHIR_DIG,urgences,80+,M,domicile,67
+PNEUMO,urgences,80+,M,SSR,67
+GASTRO,urgences,80+,M,domicile,54
+USIC > CARDIO,urgences,80+,M,domicile,54
+GERIA,urgences,80+,M,deces,53
+MED_INT,urgences,80+,M,SSR,51
+NEURO,urgences,80+,M,SSR,51
+MED_POLY,urgences,80+,M,deces,50
+UHCD > MED_POLY,urgences,80+,M,domicile,47
+GASTRO,urgences,80+,M,SSR,42
+MED_POLY,urgences,80+,M,EHPAD,40
+UHCD > GERIA,urgences,80+,M,domicile,35
+USIC,urgences,80+,M,domicile,35
+CARDIO,urgences,80+,M,EHPAD,31
+UHCD > GERIA,urgences,80+,M,SSR,31
+UHCD,urgences,80+,M,transfert,28
+UHCD > MED_POLY,urgences,80+,M,SSR,28
+CARDIO,urgences,80+,M,deces,27
+UHCD > CARDIO,urgences,80+,M,domicile,25
+URO,urgences,80+,M,domicile,25
+UHCD > NEURO,urgences,80+,M,domicile,23
+UHCD > PNEUMO,urgences,80+,M,SSR,23
+UHCD > PNEUMO,urgences,80+,M,domicile,23
+USIC > CARDIO,urgences,80+,M,SSR,23
+UHCD > GASTRO,urgences,80+,M,domicile,22
+PNEUMO,urgences,80+,M,EHPAD,20
+REA > MED_POLY,urgences,80+,M,domicile,20
