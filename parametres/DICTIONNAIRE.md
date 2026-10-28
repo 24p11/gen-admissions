@@ -75,8 +75,9 @@ service a sa propre spécialité ; dans un établissement réel, plusieurs unit�
 peuvent partager une spécialité.
 
 **L'UHCD.** L'unité d'hospitalisation de courte durée fait partie de la
-structure des urgences : dans `structure.yaml`, un seul service porte
-`urgences: true`, et ses lits sont ceux de l'UHCD. Les passages aux urgences
+structure des urgences : dans `structure.yaml`, le bloc `urgences:` nomme
+le service qui reçoit les arrivées (`service: URG`), et les lits de ce
+service sont ceux de l'UHCD. Les passages aux urgences
 n'occupent pas de lit et n'ont pas de GHM ; un séjour en UHCD est, lui, un
 séjour (un RUM dans l'unité d'UHCD, donc un RSS et un GHM). L'UHCD est
 traitée comme un prolongement des urgences, jamais comme une étape du parcours. Dans toutes
@@ -107,7 +108,6 @@ services:                              # un bloc par service
     libelle: Urgences (dont UHCD)
     specialite: URG
     lits: 10                           # les lits de l'UHCD, demandés au-delà de seuil_uhcd_h ;
-    urgences: true                     # la structure des urgences : les arrivées entrent ici,
                                        # les passages eux-mêmes n'occupent pas de lit
   REA:
     libelle: Réanimation
@@ -132,6 +132,7 @@ services:                              # un bloc par service
   # …
 
 urgences:
+  service: URG                         # le service qui reçoit les arrivées (ses lits sont ceux de l'UHCD)
   passages_par_an: 45000               # volume absolu, multiplié par les profils (A1)
   seuil_uhcd_h: 6                      # durée de passage au-delà de laquelle un lit d'UHCD est demandé (A5)
   delai_transfert_h: 24                # attente de lit au-delà de laquelle un patient des urgences est transféré (D7)
@@ -169,7 +170,7 @@ le service d'origine, la priorité selon la gravité CCMU, le taux d'occupation
 global. L'hébergement hors de la spécialité est lu dans les tables de
 premier service et de passage (colonne `rang`).
 
-**Booléens.** Les indicateurs `urgences` et `soins_critiques` s'écrivent `true` / `false` ; le lecteur accepte aussi `oui` / `non`.
+**Booléens.** L'indicateur `soins_critiques` s'écrit `true` / `false` ; le lecteur accepte aussi `oui` / `non`.
 
 **Comment fixer les règles.** Les délais, priorités et seuils sont des
 pratiques de l'établissement, pas des mesures. On leur donne une valeur de
