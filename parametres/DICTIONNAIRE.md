@@ -110,10 +110,16 @@ services:                              # un bloc par service
     lits: 10                           # les lits de l'UHCD, demandés au-delà de seuil_uhcd_h ;
                                        # les passages eux-mêmes n'occupent pas de lit
   REA:
-    libelle: Réanimation
+    libelle: Réanimation et surveillance continue
     specialite: REA
-    lits: 20
-    soins_critiques: true              # pas de redirection vers ou depuis un autre type de service
+    lits: 32
+    soins_critiques: [rea, usc]        # types couverts (rea, usi, usc) ; pas de redirection
+                                       # vers ou depuis un service conventionnel
+  USIC:
+    libelle: Soins intensifs cardiologiques
+    specialite: USIC
+    lits: 8
+    soins_critiques: [usi]
   CARDIO:
     libelle: Cardiologie
     specialite: CARDIO
@@ -170,7 +176,18 @@ le service d'origine, la priorité selon la gravité CCMU, le taux d'occupation
 global. L'hébergement hors de la spécialité est lu dans les tables de
 premier service et de passage (colonne `rang`).
 
-**Booléens.** L'indicateur `soins_critiques` s'écrit `true` / `false` ; le lecteur accepte aussi `oui` / `non`.
+**Soins critiques.** La clé `soins_critiques` d'un service est la liste des
+types qu'il couvre, parmi `rea` (réanimation), `usi` (soins intensifs) et
+`usc` (surveillance continue). Un service peut en couvrir plusieurs
+(réanimation et surveillance continue réunies). Un service sans cette clé
+est un service conventionnel. Cette liste sert à l'étape C5 : un séjour dont
+le tirage C4 a donné un type de soins critiques ne peut suivre qu'une
+trajectoire passant par un service qui couvre ce type. Il est donc
+indispensable que les unités de soins intensifs (soins intensifs
+cardiologiques, unité neuro-vasculaire…) aient leur propre spécialité dans
+`specialites.csv` et dans la correspondance unités → spécialités utilisée
+pour calculer les tables de parcours : rattachées à la cardiologie ou à la
+neurologie, elles disparaîtraient des trajectoires.
 
 **Comment fixer les règles.** Les délais, priorités et seuils sont des
 pratiques de l'établissement, pas des mesures. On leur donne une valeur de
@@ -288,13 +305,16 @@ d'entrée et de sortie fixent la durée exacte.
 | `part_usc` | idem surveillance continue |
 
 Trois proportions indépendantes (chacune entre 0 et 1, elles ne somment pas
-à 1). Repli : `ghm` seul, puis `racine_ghm`.
+à 1). Repli : appliqué à la fabrication (voir calcul), pas par le simulateur.
 
 **Calcul.** D'après les suppléments de réanimation, de soins intensifs et de
 surveillance continue du RSA : un séjour « passe » par un type de soins
-critiques s'il a au moins un supplément de ce type. Pour chaque GHM et classe
-d'âge, part des séjours concernés. Une part calculée sur moins de
-`seuil_effectif` séjours est remplacée par celle du niveau de repli.
+critiques s'il a au moins un supplément de ce type (réanimation pédiatrique
+avec la réanimation, néonatologie avec les soins intensifs). Pour chaque GHM
+et classe d'âge, part des séjours concernés. Une part calculée sur moins de
+`seuil_effectif` séjours est remplacée, dès la fabrication du fichier, par
+celle du GHM sans distinction d'âge, puis par celle de la racine : le fichier
+livré n'a qu'un niveau et le simulateur n'a pas de repli à faire.
 
 ### `sexe_racine.csv` — le sexe sachant la racine (C1)
 
