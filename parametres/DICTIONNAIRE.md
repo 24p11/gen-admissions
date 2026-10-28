@@ -200,11 +200,18 @@ Dérivé du fichier de regroupements de l'ATIH (une ligne par GHM).
 | `racine_ghm` | cinq premiers caractères |
 | `niveau` | sixième caractère |
 | `libelle` | libellé du GHM |
-| `ga`, `gp`, `da` | groupe d'activité, groupe de planification, domaine d'activité (codes ATIH) |
+| `ga`, `gp`, `da` | groupe d'activité, groupe de planification, domaine d'activité (codes ATIH), facultatifs |
 
-Sert aux replis (un GHM absent d'une table est remplacé par sa racine, puis
-par son groupe d'activité si une table le prévoit) et à la lecture des
-sorties.
+Ce fichier est une nomenclature, pas une table de tirage : il donne la liste
+des GHM valides, leur racine, leur niveau et leur libellé. Le simulateur
+s'en sert pour vérifier que les GHM des tables existent, pour écrire les
+libellés dans les sorties, et pour connaître la racine d'un GHM quand une
+table n'a pas de ligne pour ce GHM (repli `ghm → racine_ghm`). Les colonnes
+de regroupement de l'ATIH (`ga`, `gp`, `da`) ne servent à aucun tirage ni à
+aucun repli dans la version 2 : elles sont conservées parce qu'elles
+permettent de fabriquer des données fictives réalistes (choisir des racines
+plausibles pour chaque spécialité) et d'analyser les sorties par groupe
+d'activité.
 
 ---
 
