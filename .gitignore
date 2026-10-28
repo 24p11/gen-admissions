@@ -10,3 +10,4 @@ dist/
 sorties/*
 !sorties/exemple/
 sorties/exemple/*.parquet
+prod/
