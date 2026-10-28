@@ -74,8 +74,12 @@ chaque *service* de l'hôpital correspond. Dans l'hôpital fictif, chaque
 service a sa propre spécialité ; dans un établissement réel, plusieurs unités
 peuvent partager une spécialité.
 
-**L'UHCD.** L'unité d'hospitalisation de courte durée est traitée comme un
-prolongement des urgences, jamais comme une étape du parcours. Dans toutes
+**L'UHCD.** L'unité d'hospitalisation de courte durée fait partie de la
+structure des urgences : dans `structure.yaml`, un seul service porte
+`urgences: true`, et ses lits sont ceux de l'UHCD. Les passages aux urgences
+n'occupent pas de lit et n'ont pas de GHM ; un séjour en UHCD est, lui, un
+séjour (un RUM dans l'unité d'UHCD, donc un RSS et un GHM). L'UHCD est
+traitée comme un prolongement des urgences, jamais comme une étape du parcours. Dans toutes
 les tables de parcours (premier service, catalogue, table de passage), les
 passages en UHCD sont retirés avant calcul : le premier service d'un séjour
 est le premier service *autre que l'UHCD*. Un séjour qui se limite à l'UHCD
@@ -100,20 +104,16 @@ classes_age_duree: [0-59, 60+]
 
 services:                              # un bloc par service
   URG:
-    libelle: Urgences
+    libelle: Urgences (dont UHCD)
     specialite: URG
-    lits: 0                            # les urgences n'ont pas de lits : les patients y attendent
-    urgences: oui                      # le service d'accueil des urgences
-  UHCD:
-    libelle: Unité d'hospitalisation de courte durée
-    specialite: UHCD
-    lits: 10
-    uhcd: oui                          # reçoit les passages de plus de seuil_uhcd_h
+    lits: 10                           # les lits de l'UHCD, demandés au-delà de seuil_uhcd_h ;
+    urgences: true                     # la structure des urgences : les arrivées entrent ici,
+                                       # les passages eux-mêmes n'occupent pas de lit
   REA:
     libelle: Réanimation
     specialite: REA
     lits: 20
-    soins_critiques: oui               # pas de redirection vers ou depuis un autre type de service
+    soins_critiques: true              # pas de redirection vers ou depuis un autre type de service
   CARDIO:
     libelle: Cardiologie
     specialite: CARDIO
@@ -147,7 +147,7 @@ lits:
 
 sorties:
   facteur_weekend: 0.45                # sorties du samedi et du dimanche, en proportion d'un jour de semaine (C8)
-  services_sans_effet_weekend: [REA, USC, USIC, UHCD]
+  services_sans_effet_weekend: [REA, USC, USIC, URG]
 
 population:
   probabilite_retour:                  # part des arrivants qui sont des patients déjà connus (E)
@@ -169,6 +169,8 @@ le service d'origine, la priorité selon la gravité CCMU, le taux d'occupation
 global. L'hébergement hors de la spécialité est lu dans les tables de
 premier service et de passage (colonne `rang`).
 
+**Booléens.** Les indicateurs `urgences` et `soins_critiques` s'écrivent `true` / `false` ; le lecteur accepte aussi `oui` / `non`.
+
 **Comment fixer les règles.** Les délais, priorités et seuils sont des
 pratiques de l'établissement, pas des mesures. On leur donne une valeur de
 départ (celles ci-dessus), puis on les ajuste jusqu'à ce que le tableau de
@@ -183,7 +185,7 @@ classe de tension). Le délai de transfert peut être approché par un centile
 | --- | --- |
 | `specialite` | code court, sans espace (`CARDIO`) |
 | `libelle` | libellé lisible |
-| `type` | `medecine`, `chirurgie`, `obstetrique`, `pediatrie`, `soins_critiques`, `uhcd`, `urgences` |
+| `type` | `medecine`, `chirurgie`, `obstetrique`, `pediatrie`, `soins_critiques`, `urgences` |
 
 Les codes doivent être exactement ceux des colonnes `specialite`, `service`,
 `precedent`, `suite` des autres tables et du champ `specialite` de la
