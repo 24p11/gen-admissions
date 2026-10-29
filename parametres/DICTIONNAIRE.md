@@ -92,7 +92,7 @@ recours à `durees_ghm` ; pour `hospitalisation`, il n'est demandé que si la
 durée tirée dépasse 6 h, et il est gardé jusqu'à l'obtention du lit de
 service. Faute de lit d'UHCD, le patient reste aux urgences (lit brancard)
 et en prend un s'il s'en libère avant la fin de son passage. Dans toutes
-les tables de parcours (premier service, catalogue, table de passage), les
+les tables de parcours (premier service, table de passage), les
 passages en UHCD sont retirés avant calcul : le premier service d'un séjour
 est le premier service *autre que l'UHCD*. Un séjour qui se limite à l'UHCD
 est la situation `mono_uhcd` de `venues_urgences.csv`.
@@ -416,49 +416,36 @@ spécialité de la structure doit avoir ses lignes.
 spécialité du premier RUM. Pour chaque spécialité, compter les séjours par
 couple (classe d'âge, racine) ; seuil et catégories rares ; normaliser.
 
-### `catalogue_trajectoires.csv` — les parcours complets fréquents (C5)
-
-| Colonne | Contenu |
-| --- | --- |
-| `trajectoire` | suite de spécialités séparées par ` > ` (`CARDIO > REA > CARDIO`), sans l'UHCD |
-| `mode_entree` | urgences, programme |
-| `classe_age` | 0-17, 18-64, 65-74, 75+ |
-| `part` | proportion |
-
-Bloc : `mode_entree × classe_age × premier service de la trajectoire`. Le
-complément à 1 dans un bloc est la part des séjours *hors catalogue*, qui
-suivront la table de passage.
-
-**Calcul.** Pour chaque séjour, la trajectoire est la suite des spécialités
-de ses RUM (UHCD retirée), en fusionnant les RUM consécutifs de même
-spécialité. Pour chaque bloc, compter les séjours par trajectoire ; ne
-retenir que les trajectoires d'effectif au moins égal au seuil ; diviser
-par l'effectif *total* du bloc (hors catalogue compris), de sorte que la
-somme des parts du bloc soit inférieure à 1.
-
 ### `table_passage.csv` — la suite du parcours, étape par étape (C5, D)
 
 | Colonne | Contenu |
 | --- | --- |
-| `niveau` | `complet`, `sans_precedent`, `sans_age`, `service` |
+| `niveau` | `complet` ou `service` |
 | `service` | spécialité courante |
-| `precedent` | spécialité précédente, ou `AUCUN` pour le premier service (vide aux niveaux qui l'ignorent) |
-| `classe_age` | classe d'âge (vide aux niveaux qui l'ignorent) |
+| `precedent` | spécialité précédente, ou `AUCUN` pour le premier service (vide au niveau `service`) |
+| `classe_age` | classe d'âge (vide au niveau `service`) |
 | `mode_entree` | urgences, programme (vide au niveau `service`) |
 | `suite` | spécialité suivante, ou `sortie` |
 | `part` | proportion |
 | `rang` | 1, 2 ou 3 (pour les lignes dont `suite` est une spécialité) |
 
-Bloc : les colonnes de contexte du niveau. Repli : le niveau suivant, du
-plus détaillé au plus général.
+Bloc : au niveau `complet`, `service × precedent × classe_age × mode_entree` ;
+au niveau `service`, le service seul. Repli : le niveau `service`, pour une
+case jamais observée au niveau complet.
 
-**Calcul.** Sur les seuls séjours *non couverts* par le catalogue (sinon les
-parcours rares, qui passent par exemple en réanimation, seraient
-sous-représentés). Chaque étape d'un séjour donne une observation :
-(service, précédent, classe d'âge, mode d'entrée) → suite. Compter par bloc
-à chaque niveau, seuil et catégories rares, normaliser. Le rang se calcule
-comme dans `premier_service_racine.csv`, par bloc, sur les lignes dont la
-suite est une spécialité.
+**Rôle.** C'est la seule table de parcours : le parcours de chaque patient
+se construit pas à pas, en tirant à chaque étape la suite sachant le service
+où il est et celui d'où il vient, jusqu'à tirer `sortie`. Il n'y a pas de
+catalogue de parcours complets dans cette version (voir la spécification,
+pistes remises à plus tard).
+
+**Calcul.** Sur tous les séjours. Pour chaque séjour, la suite des
+spécialités de ses RUM (UHCD retirée), en fusionnant les RUM consécutifs de
+même spécialité ; chaque étape donne une observation : (service, précédent,
+classe d'âge, mode d'entrée) → suite, la dernière étape ayant pour suite
+`sortie`. Compter par bloc aux deux niveaux, seuil et catégories rares,
+normaliser. Le rang se calcule comme dans `premier_service_racine.csv`, par
+bloc, sur les lignes dont la suite est une spécialité.
 
 ### `durees_passage.csv` — combien de temps dans chaque spécialité (B1, C6)
 
@@ -683,7 +670,7 @@ lit, reports d'entrées programmées), de préférence par classe de tension.
 | C2 | niveau, donc GHM | `niveaux.csv` |
 | C3 | durée totale du séjour | `durees_ghm.csv` |
 | C4 | soins critiques | `soins_critiques_ghm.csv` |
-| C5 | trajectoire | `catalogue_trajectoires.csv`, `table_passage.csv` |
+| C5 | trajectoire, étape par étape | `table_passage.csv` |
 | C6 | durée par étape | `durees_passage.csv` |
 | C7 | mode de sortie | `sorties.csv` |
 | C8 | heures de sortie, effet week-end | `profil_sorties.csv`, `structure.yaml` |
