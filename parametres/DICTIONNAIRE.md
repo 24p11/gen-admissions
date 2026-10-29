@@ -56,7 +56,7 @@ Les bornes sont des âges révolus à l'entrée.
 | Colonne | Valeurs | Sens |
 | --- | --- | --- |
 | `mode_entree` | `urgences`, `programme` | séjour venu des urgences (provenance 5 du RSS) ou non |
-| `issue` (passage aux urgences) | `domicile`, `hospitalisation`, `transfert`, `deces`, `parti` | hospitalisation = sur place, UHCD seule comprise ; transfert = vers un autre établissement ; parti = parti sans attendre |
+| `situation` (venue aux urgences) | `consultation`, `hospitalisation`, `mono_uhcd`, `transfert`, `deces`, `parti` | consultation = retour à domicile sans séjour ; hospitalisation = séjour avec au moins un service après l'UHCD ; mono_uhcd = séjour limité à l'UHCD ; transfert = vers un autre établissement ; parti = parti sans attendre |
 | `mode_sortie` (séjour) | `domicile`, `SSR`, `EHPAD`, `transfert`, `deces` | codes PMSI 8, 7-2, 8-7, 7-1, 9 |
 | `niveau` | `1`, `2`, `3`, `4`, `J`, `T`, `Z`, `A`, `B`, `C`, `D`, `E` | sixième caractère du GHM |
 | `periode` | `1` à `12` | mois civil |
@@ -80,11 +80,11 @@ le service qui reçoit les arrivées (`service: URG`), et les lits de ce
 service sont ceux de l'UHCD. Les passages aux urgences
 n'occupent pas de lit et n'ont pas de GHM ; un séjour en UHCD est, lui, un
 séjour (un RUM dans l'unité d'UHCD, donc un RSS et un GHM). L'UHCD est
-traitée comme un prolongement des urgences, jamais comme une étape du parcours. Dans toutes
+traitée comme un prolongement des urgences (étape A6), jamais comme une étape du parcours. Dans toutes
 les tables de parcours (premier service, catalogue, table de passage), les
 passages en UHCD sont retirés avant calcul : le premier service d'un séjour
 est le premier service *autre que l'UHCD*. Un séjour qui se limite à l'UHCD
-est décrit par la table `mono_uhcd.csv`.
+est la situation `mono_uhcd` de `venues_urgences.csv`.
 
 ---
 
@@ -140,7 +140,7 @@ services:                              # un bloc par service
 urgences:
   service: URG                         # le service qui reçoit les arrivées (ses lits sont ceux de l'UHCD)
   passages_par_an: 45000               # volume absolu, multiplié par les profils (A1)
-  seuil_uhcd_h: 6                      # durée de passage au-delà de laquelle un lit d'UHCD est demandé (A5)
+  seuil_uhcd_h: 6                      # durée de passage au-delà de laquelle un lit d'UHCD est demandé (A6)
   delai_transfert_h: 24                # attente de lit au-delà de laquelle un patient des urgences est transféré (D7)
 
 lits:
@@ -215,8 +215,8 @@ classe de tension). Le délai de transfert peut être approché par un centile
 
 Les codes doivent être exactement ceux des colonnes `specialite`, `service`,
 `precedent`, `suite` des autres tables et du champ `specialite` de la
-structure. Les séjours limités à l'UHCD ne sont pas une spécialité : ils sont décrits
-par `mono_uhcd.csv`.
+structure. Les séjours limités à l'UHCD ne sont pas une spécialité : ils sont la
+situation `mono_uhcd` de `venues_urgences.csv`.
 
 ### `regroupements_ghm.csv` — la nomenclature des GHM
 
@@ -247,25 +247,6 @@ d'activité.
 
 Calculables sur une base nationale ou sur plusieurs établissements : elles
 ne dépendent pas de l'organisation d'un hôpital particulier.
-
-### `casemix_urgences.csv` — quelle racine pour un patient hospitalisé depuis les urgences (A6)
-
-| Colonne | Contenu |
-| --- | --- |
-| `periode` | mois, 1 à 12 |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
-| `racine_ghm` | racine |
-| `part` | proportion |
-
-Bloc : `periode × classe_age`. Repli : `classe_age` seule (lignes avec
-`periode` vide).
-
-**Calcul.** Prendre tous les séjours dont le mode d'entrée indique les
-urgences (provenance 5), *y compris* les séjours limités à l'UHCD. Pour
-chaque mois d'entrée et classe d'âge, compter les séjours par racine de
-GHM ; appliquer le seuil et la règle des catégories rares ; diviser par le
-total du bloc. Sur cinq années, le mois est celui de l'entrée quelle que
-soit l'année : la table décrit la saisonnalité, pas une année précise.
 
 ### `niveaux.csv` — quel niveau de sévérité (C2)
 
@@ -392,7 +373,7 @@ ne donnent pas des effectifs suffisants. La condition est que la
 correspondance unités → spécialités utilise les mêmes codes
 (`specialites.csv`) sur tous les sites agrégés. Pour chaque séjour, le
 premier service est la spécialité du premier RUM *autre que l'UHCD* ; les
-séjours limités à l'UHCD sont exclus (ils sont décrits par `mono_uhcd.csv`).
+séjours limités à l'UHCD sont exclus (situation `mono_uhcd` de `venues_urgences.csv`).
 Pour chaque racine et classe d'âge, compter par premier service ; seuil et
 catégories rares ; normaliser. Puis attribuer le rang : 1 si la part est au
 moins `part_min_service_habituel` (0,10 par défaut) ; 2 si la ligne a été
@@ -406,26 +387,6 @@ venus des urgences sont transférés (l'hôpital n'a pas l'activité). Le
 service prévu est ensuite tiré sur la distribution restreinte. En cas de
 lits manquants, la redirection ne considère que les lignes de rang 1, puis
 de rang 2, jamais celles de rang 3 (règle D).
-
-### `mono_uhcd.csv` — le séjour se limite-t-il à l'UHCD (A7)
-
-| Colonne | Contenu |
-| --- | --- |
-| `racine_ghm` | racine |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
-| `part` | part des séjours venus des urgences qui se limitent à l'UHCD |
-
-Une proportion entre 0 et 1 par case. Repli : `racine_ghm` seule, puis 0.
-
-**Calcul.** Séjours venus des urgences (un ou plusieurs établissements).
-Pour chaque racine et classe d'âge, part des séjours dont tous les RUM sont
-dans l'unité d'UHCD. Une case sous le seuil d'effectif prend la valeur de la
-racine seule, dès la fabrication (comme pour les soins critiques).
-
-**Usage.** Pour un patient hospitalisé depuis les urgences, le simulateur
-tire d'abord « limité à l'UHCD » avec cette part ; si oui, le séjour est le
-seul RUM d'UHCD, de durée tirée dans `durees_ghm` ; sinon, il tire le premier
-service dans `premier_service_racine`.
 
 ### `casemix.csv` — quels patients en entrée programmée (B3)
 
@@ -537,27 +498,49 @@ mois.
 
 **Calcul.** RPU : part de chaque couple (classe d'âge, sexe).
 
-### `gravite_urgences.csv` — la gravité CCMU (A2)
+### `venues_urgences.csv` — ce qui arrive à une venue aux urgences (A3)
 
 | Colonne | Contenu |
 | --- | --- |
-| `classe_age`, `gravite` (1 à 5), `part` | bloc : `classe_age` |
+| `periode` | mois, 1 à 12 |
+| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `situation` | `consultation`, `hospitalisation`, `mono_uhcd`, `transfert`, `deces`, `parti` |
+| `racine_ghm` | racine du séjour, remplie pour `hospitalisation` et `mono_uhcd` seulement, vide sinon |
+| `part` | proportion |
 
-**Calcul.** RPU, champ CCMU, part par classe d'âge. Les CCMU P et D sont
-rattachées respectivement à 1 et à 5.
+Bloc : `periode × classe_age` (les parts de toutes les situations et racines
+d'un mois et d'une classe d'âge somment à 1). Repli : `classe_age` seule
+(lignes avec `periode` vide).
 
-### `issues_urgences.csv` — comment se termine le passage (A3)
+**Les situations.** `consultation` : retour à domicile sans séjour ;
+`hospitalisation` : séjour comportant au moins un passage dans un service
+autre que l'UHCD ; `mono_uhcd` : séjour dont tous les RUM sont dans l'unité
+d'UHCD ; `transfert` : vers un autre établissement ; `deces` ; `parti` :
+parti sans attendre ou contre avis.
+
+**Calcul.** RPU chaînés aux séjours PMSI (un ou plusieurs établissements où
+ce chaînage existe). Pour chaque venue, la situation d'après le mode de
+sortie du RPU et, pour les venues suivies d'un séjour, d'après les RUM du
+séjour (UHCD seule ou non) ; la racine d'après le GHM du séjour. Pour chaque
+mois d'arrivée et classe d'âge, compter par (situation, racine) ; seuil et
+catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
+l'arrivée quelle que soit l'année : la table décrit la saisonnalité.
+
+**Usage.** Un seul tirage donne la situation et, le cas échéant, la racine.
+La gravité (A4), la durée du passage (A5) et le premier service (A7) sont
+tirés ensuite sachant la situation.
+
+### `gravite_urgences.csv` — la gravité CCMU (A4)
 
 | Colonne | Contenu |
 | --- | --- |
-| `classe_age`, `gravite`, `issue`, `part` | bloc : `classe_age × gravite` |
+| `classe_age`, `situation`, `gravite` (1 à 5), `part` | bloc : `classe_age × situation` |
 
 Repli : `classe_age` seule.
 
-**Calcul.** RPU : `hospitalisation` si le mode de sortie est une
-hospitalisation sur place (UHCD comprise) ; `transfert` si mutation ou
-transfert vers un autre établissement ; `deces` ; `parti` si parti sans
-attendre ou contre avis ; `domicile` sinon.
+**Calcul.** RPU, champ CCMU, part par classe d'âge et situation. Les CCMU
+P et D sont rattachées respectivement à 1 et à 5. La gravité est un attribut
+descriptif du RPU produit ; elle n'influence aucun autre tirage.
 
 ### `classes_tension.csv` — les bornes de la tension du jour (D1)
 
@@ -578,25 +561,25 @@ les deux bornes sont les terciles (33e et 67e centiles). D'autres bornes sont
 possibles (seuils de l'établissement) ; ce qui compte est qu'elles soient
 les mêmes pour estimer les tables et pour simuler.
 
-### `durees_passage_urgences.csv` — combien de temps aux urgences (A4)
+### `durees_passage_urgences.csv` — combien de temps aux urgences (A5)
 
 | Colonne | Contenu |
 | --- | --- |
-| `issue` | domicile, hospitalisation, transfert, deces, parti |
+| `situation` | consultation, hospitalisation, mono_uhcd, transfert, deces, parti |
 | `classe_age` | 0-17, 18-64, 65-79, 80+ |
 | `classe_tension` | basse, moyenne, haute |
 | `tranche_h` | 0-1, 1-2, 2-4, 4-6, 6-12, 12-24, 24+ |
 | `part` | proportion |
 
-Bloc : `issue × classe_age × classe_tension`. Repli : `issue × classe_age`
+Bloc : `situation × classe_age × classe_tension`. Repli : `situation × classe_age`
 (lignes avec `classe_tension` vide).
 
 **Calcul.** RPU : durée = sortie moins arrivée, en heures, *UHCD comprise*
 (la sortie du RPU est la sortie de la structure des urgences, UHCD incluse ;
 à vérifier selon la façon dont les RPU sont produits). Chaque passage reçoit
-la classe de tension du jour de son arrivée. Pour l'issue
+la classe de tension du jour de son arrivée. Pour la situation
 `hospitalisation`, ne garder que les passages dont le premier service du
-séjour est de rang 1 dans `premier_service_racine.csv` (ou limité à l'UHCD) :
+séjour est de rang 1 dans `premier_service_racine.csv` :
 c'est la durée « sans redirection » ; la redirection est portée par la table
 suivante. Compter par tranche, seuil et catégories rares, normaliser. Le
 simulateur tire une tranche, puis une valeur uniforme dans la tranche (pour
@@ -615,7 +598,7 @@ vide).
 
 **Calcul.** Passages aux urgences suivis d'une hospitalisation dont le
 premier service est de rang 2. Pour chacun : durée de passage moins la
-durée *médiane* des passages de rang 1 de la même case (issue
+durée *médiane* des passages de rang 1 de la même case (situation
 hospitalisation, classe d'âge, classe de tension) ; les écarts négatifs sont
 ramenés à zéro. Ranger les écarts par tranche, par classe de tension ;
 normaliser. On ne distingue pas l'âge pour garder des effectifs suffisants.
@@ -673,13 +656,13 @@ lit, reports d'entrées programmées), de préférence par classe de tension.
 | Étape | Ce qui est tiré ou décidé | Fichier |
 | --- | --- | --- |
 | A1 | instant d'arrivée aux urgences | `structure.yaml` (passages_par_an), `profil_arrivees_urgences.csv` |
-| A2 | classe d'âge, sexe, gravité | `profil_patients_urgences.csv`, `gravite_urgences.csv` |
-| A3 | issue du passage | `issues_urgences.csv` |
-| A4 | durée du passage | `durees_passage_urgences.csv` (+ tension du jour) |
-| A5 | lit d'UHCD au-delà de 6 h | `structure.yaml` (seuil_uhcd_h) |
-| A6 | racine de GHM | `casemix_urgences.csv` |
-| A7 | séjour limité à l'UHCD, sinon premier service | `mono_uhcd.csv`, `premier_service_racine.csv` |
-| B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (lits, occupation_visee), `durees_passage.csv`, tables A |
+| A2 | classe d'âge, sexe | `profil_patients_urgences.csv` |
+| A3 | situation de la venue et racine de GHM | `venues_urgences.csv` |
+| A4 | gravité CCMU | `gravite_urgences.csv` |
+| A5 | durée du passage | `durees_passage_urgences.csv` (+ tension du jour) |
+| A6 | lit d'UHCD au-delà de 6 h | `structure.yaml` (seuil_uhcd_h) |
+| A7 | premier service (situation hospitalisation) | `premier_service_racine.csv` |
+| B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (lits, occupation_visee), `durees_passage.csv`, tables A3 et A7 |
 | B2 | jour et heure d'entrée | `profil_entrees_programmees.csv` |
 | B3 | classe d'âge et racine | `casemix.csv` |
 | B4 | report au lendemain | `structure.yaml` (delai_report_programme_h) |
