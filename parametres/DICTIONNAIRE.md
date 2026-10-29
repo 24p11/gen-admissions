@@ -80,7 +80,18 @@ le service qui reçoit les arrivées (`service: URG`), et les lits de ce
 service sont ceux de l'UHCD. Les passages aux urgences
 n'occupent pas de lit et n'ont pas de GHM ; un séjour en UHCD est, lui, un
 séjour (un RUM dans l'unité d'UHCD, donc un RSS et un GHM). L'UHCD est
-traitée comme un prolongement des urgences (étape A6), jamais comme une étape du parcours. Dans toutes
+traitée comme un prolongement des urgences, jamais comme une étape du parcours.
+
+La règle d'entrée en UHCD (étape A6) : seules les venues de situation
+`hospitalisation` ou `mono_uhcd` peuvent occuper un lit d'UHCD (un lit
+d'UHCD est un RUM, donc un séjour) ; les autres situations restent dans les
+box des urgences quelle que soit leur durée. Le lit est demandé à la 6e heure
+du passage (`seuil_uhcd_h`) : pour `mono_uhcd`, il est occupé jusqu'à la fin
+de la durée tirée en A5 (durée totale urgences + UHCD, plancher 6 h), sans
+recours à `durees_ghm` ; pour `hospitalisation`, il n'est demandé que si la
+durée tirée dépasse 6 h, et il est gardé jusqu'à l'obtention du lit de
+service. Faute de lit d'UHCD, le patient reste aux urgences (lit brancard)
+et en prend un s'il s'en libère avant la fin de son passage. Dans toutes
 les tables de parcours (premier service, catalogue, table de passage), les
 passages en UHCD sont retirés avant calcul : le premier service d'un séjour
 est le premier service *autre que l'UHCD*. Un séjour qui se limite à l'UHCD
@@ -577,7 +588,9 @@ Bloc : `situation × classe_age × classe_tension`. Repli : `situation × classe
 **Calcul.** RPU : durée = sortie moins arrivée, en heures, *UHCD comprise*
 (la sortie du RPU est la sortie de la structure des urgences, UHCD incluse ;
 à vérifier selon la façon dont les RPU sont produits). Chaque passage reçoit
-la classe de tension du jour de son arrivée. Pour la situation
+la classe de tension du jour de son arrivée. Pour la situation `mono_uhcd`,
+la durée est celle de l'ensemble urgences + UHCD et sert de durée de séjour
+(plancher 6 h au tirage). Pour la situation
 `hospitalisation`, ne garder que les passages dont le premier service du
 séjour est de rang 1 dans `premier_service_racine.csv` :
 c'est la durée « sans redirection » ; la redirection est portée par la table
@@ -660,7 +673,7 @@ lit, reports d'entrées programmées), de préférence par classe de tension.
 | A3 | situation de la venue et racine de GHM | `venues_urgences.csv` |
 | A4 | gravité CCMU | `gravite_urgences.csv` |
 | A5 | durée du passage | `durees_passage_urgences.csv` (+ tension du jour) |
-| A6 | lit d'UHCD au-delà de 6 h | `structure.yaml` (seuil_uhcd_h) |
+| A6 | lit d'UHCD à la 6e heure (situations hospitalisation et mono_uhcd) | `structure.yaml` (seuil_uhcd_h) |
 | A7 | premier service (situation hospitalisation) | `premier_service_racine.csv` |
 | B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (lits, occupation_visee), `durees_passage.csv`, tables A3 et A7 |
 | B2 | jour et heure d'entrée | `profil_entrees_programmees.csv` |
