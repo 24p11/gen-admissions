@@ -168,6 +168,11 @@ simulation:
   chauffe_jours: 42
   marge_fin_jours: 60
   graine: 42
+
+autorisations_soins_critiques:         # lu par l'extraction, pas par la simulation :
+  rea: ["01A", "01B"]                  # types d'autorisation d'unité médicale qui définissent
+  usi: ["02A", "02E", "02F", "18"]     # chaque type, pour classer les services comme les séjours
+  usc: ["03A", "03B"]
 ```
 
 Ce que ce fichier ne contient plus par rapport à la version 1 : la liste des
@@ -183,6 +188,9 @@ types qu'il couvre, parmi `rea` (réanimation), `usi` (soins intensifs) et
 est un service conventionnel. Cette liste sert à l'étape C5 : un séjour dont
 le tirage C4 a donné un type de soins critiques ne peut suivre qu'une
 trajectoire passant par un service qui couvre ce type. Il est donc
+recommandé de classer les services d'après le type d'autorisation de leurs
+unités, avec les listes du bloc `autorisations_soins_critiques`, qui servent
+aussi à classer les séjours (`soins_critiques_ghm.csv`). Il est
 indispensable que les unités de soins intensifs (soins intensifs
 cardiologiques, unité neuro-vasculaire…) aient leur propre spécialité dans
 `specialites.csv` et dans la correspondance unités → spécialités utilisée
@@ -307,11 +315,16 @@ d'entrée et de sortie fixent la durée exacte.
 Trois proportions indépendantes (chacune entre 0 et 1, elles ne somment pas
 à 1). Repli : appliqué à la fabrication (voir calcul), pas par le simulateur.
 
-**Calcul.** D'après les suppléments de réanimation, de soins intensifs et de
-surveillance continue du RSA : un séjour « passe » par un type de soins
-critiques s'il a au moins un supplément de ce type (réanimation pédiatrique
-avec la réanimation, néonatologie avec les soins intensifs). Pour chaque GHM
-et classe d'âge, part des séjours concernés. Une part calculée sur moins de
+**Calcul.** D'après le type d'autorisation des unités médicales (et non
+d'après les suppléments du RSA, dont les règles d'attribution ne recoupent
+pas la façon dont les services sont déclarés) : un séjour « passe » par un
+type de soins critiques s'il a au moins un RUM dans une unité dont
+l'autorisation appartient à la liste de ce type, donnée dans le bloc
+`autorisations_soins_critiques` de `structure.yaml`. Cette définition est la
+même que celle qui classe les services, ce qui garantit que les tables de
+trajectoires et cette table sont cohérentes. Elle reste calculable sur la
+base nationale, le RSA portant le type d'autorisation de chaque RUM. Pour
+chaque GHM et classe d'âge, part des séjours concernés. Une part calculée sur moins de
 `seuil_effectif` séjours est remplacée, dès la fabrication du fichier, par
 celle du GHM sans distinction d'âge, puis par celle de la racine : le fichier
 livré n'a qu'un niveau et le simulateur n'a pas de repli à faire.
