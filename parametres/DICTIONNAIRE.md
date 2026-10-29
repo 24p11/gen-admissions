@@ -46,7 +46,7 @@ détaillée.
 
 | Jeu | Valeurs | Utilisé par |
 | --- | --- | --- |
-| `classe_age` | `0-17`, `18-64`, `65-79`, `80+` | toutes les tables par racine de GHM, par spécialité, et les profils des urgences |
+| `classe_age` | `0-17`, `18-64`, `65-74`, `75+` | toutes les tables par racine de GHM, par spécialité, et les profils des urgences |
 | `classe_age_duree` | `0-59`, `60+` | les tables par GHM complet (`durees_ghm`, `soins_critiques_ghm`), où le croisement avec 2 639 GHM impose des classes larges |
 
 Les bornes sont des âges révolus à l'entrée.
@@ -111,7 +111,7 @@ absolus (lits, passages par an).
 etablissement: HOPITAL_FICTIF          # identifiant repris dans les sorties
 description: texte libre
 debut: '2026-01-01'                    # premier jour simulé
-classes_age: [0-17, 18-64, 65-79, 80+]
+classes_age: [0-17, 18-64, 65-74, 75+]
 classes_age_duree: [0-59, 60+]
 
 services:                              # un bloc par service
@@ -171,8 +171,8 @@ population:
   probabilite_retour:                  # part des arrivants qui sont des patients déjà connus (E)
     0-17: 0.10
     18-64: 0.12
-    65-79: 0.20
-    80+: 0.28
+    65-74: 0.20
+    75+: 0.28
 
 simulation:
   duree_jours: 365
@@ -264,7 +264,7 @@ ne dépendent pas de l'organisation d'un hôpital particulier.
 | Colonne | Contenu |
 | --- | --- |
 | `racine_ghm` | racine |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `niveau` | 1 à 4, J, T, Z, A à E |
 | `part` | proportion |
 
@@ -341,7 +341,7 @@ racine, en A2 ; il n'est alors utilisé que comme garde-fou).
 | --- | --- |
 | `racine_ghm` | racine |
 | `niveau` | niveau |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `mode_sortie` | domicile, SSR, EHPAD, transfert, deces |
 | `part` | proportion |
 
@@ -369,7 +369,7 @@ passages en UHCD ont été retirés.
 | Colonne | Contenu |
 | --- | --- |
 | `racine_ghm` | racine |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `specialite` | une spécialité (hors UHCD) |
 | `part` | proportion |
 | `rang` | 1, 2 ou 3 |
@@ -404,7 +404,7 @@ de rang 2, jamais celles de rang 3 (règle D).
 | Colonne | Contenu |
 | --- | --- |
 | `specialite` | spécialité du service d'entrée |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `racine_ghm` | racine |
 | `part` | proportion |
 
@@ -422,7 +422,7 @@ couple (classe d'âge, racine) ; seuil et catégories rares ; normaliser.
 | --- | --- |
 | `trajectoire` | suite de spécialités séparées par ` > ` (`CARDIO > REA > CARDIO`), sans l'UHCD |
 | `mode_entree` | urgences, programme |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `part` | proportion |
 
 Bloc : `mode_entree × classe_age × premier service de la trajectoire`. Le
@@ -466,7 +466,7 @@ suite est une spécialité.
 | --- | --- |
 | `specialite` | spécialité |
 | `mode_entree` | urgences, programme |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `mediane_j`, `q1_j`, `q3_j` | médiane et quartiles de la durée d'un passage, en jours (décimaux) |
 | `moyenne_j` | durée moyenne, en jours |
 
@@ -514,7 +514,7 @@ mois.
 | Colonne | Contenu |
 | --- | --- |
 | `periode` | mois, 1 à 12 |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `situation` | `consultation`, `hospitalisation`, `mono_uhcd`, `transfert`, `deces`, `parti` |
 | `racine_ghm` | racine du séjour, remplie pour `hospitalisation` et `mono_uhcd` seulement, vide sinon |
 | `part` | proportion |
@@ -577,7 +577,7 @@ les mêmes pour estimer les tables et pour simuler.
 | Colonne | Contenu |
 | --- | --- |
 | `situation` | consultation, hospitalisation, mono_uhcd, transfert, deces, parti |
-| `classe_age` | 0-17, 18-64, 65-79, 80+ |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `classe_tension` | basse, moyenne, haute |
 | `tranche_h` | 0-1, 1-2, 2-4, 4-6, 6-12, 12-24, 24+ |
 | `part` | proportion |
