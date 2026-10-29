@@ -32,7 +32,7 @@ totale (la somme de leurs effectifs divisée par l'effectif du bloc), puis on la
 répartit **uniformément** entre elles. Le volume des cas rares est ainsi
 conservé, sans qu'aucune proportion individuelle sous le seuil ne soit
 transmise. Dans les tables de services qui portent une colonne `rang`, ces
-lignes complétées reçoivent le rang 0.
+lignes complétées reçoivent le rang 3.
 
 **Repli.** Quand une case n'existe pas (combinaison jamais observée), le
 simulateur utilise une table plus générale, indiquée dans la colonne
@@ -63,7 +63,7 @@ Les bornes sont des âges révolus à l'entrée.
 | `classe_tension` | `basse`, `moyenne`, `haute` | voir `classes_tension.csv` |
 | `tranche_h` | `0-1`, `1-2`, `2-4`, `4-6`, `6-12`, `12-24`, `24+` | tranches de durée en heures, borne basse incluse |
 | `duree_j` | `0` à `60`, puis `60+` | durée de séjour en jours entiers (date de sortie moins date d'entrée) |
-| `rang` | `0`, `1`, `2` | 0 complété par la règle des catégories rares ; 1 service habituel ; 2 service exceptionnel |
+| `rang` | `1`, `2`, `3` | 1 service habituel (part ≥ 10 %) ; 2 service exceptionnel (observé au-dessus du seuil d'effectif, part < 10 %) ; 3 service complété par la règle des catégories rares (effectif sous le seuil). Le rang croît avec la rareté : plus petit = mobilisé en premier |
 
 **Racine de GHM.** Les cinq premiers caractères du GHM (par exemple `05M09`).
 Le GHM complet ajoute le niveau (`05M093`).
@@ -380,7 +380,7 @@ passages en UHCD ont été retirés.
 | `classe_age` | 0-17, 18-64, 65-79, 80+ |
 | `specialite` | une spécialité (hors UHCD) ou `MONO_UHCD` |
 | `part` | proportion |
-| `rang` | 0, 1 ou 2 |
+| `rang` | 1, 2 ou 3 |
 
 Bloc : `racine_ghm × classe_age`. Repli : `racine_ghm` seule.
 
@@ -390,13 +390,13 @@ limité à l'UHCD), le premier service vaut `MONO_UHCD`. Pour chaque racine et
 classe d'âge, compter par premier service ; seuil et catégories rares ;
 normaliser. Puis attribuer le rang : 1 si la part est au moins
 `part_min_service_habituel` (0,10 par défaut) ; 2 si la ligne a été
-observée au-dessus du seuil d'effectif mais que sa part est inférieure ; 0 si
+observée au-dessus du seuil d'effectif mais que sa part est inférieure ; 3 si
 la ligne vient de la répartition uniforme des catégories rares. `MONO_UHCD`
 reçoit toujours le rang 1 (il n'y a pas de redirection vers l'UHCD).
 
 **Usage.** Le service prévu est tiré sur toute la distribution. En cas de
 lits manquants, la redirection ne considère que les lignes de rang 1, puis
-de rang 2, jamais celles de rang 0 (règle D).
+de rang 2, jamais celles de rang 3 (règle D).
 
 ### `casemix.csv` — quels patients en entrée programmée (B3)
 
@@ -446,7 +446,7 @@ somme des parts du bloc soit inférieure à 1.
 | `mode_entree` | urgences, programme (vide au niveau `service`) |
 | `suite` | spécialité suivante, ou `sortie` |
 | `part` | proportion |
-| `rang` | 0, 1 ou 2 (pour les lignes dont `suite` est une spécialité) |
+| `rang` | 1, 2 ou 3 (pour les lignes dont `suite` est une spécialité) |
 
 Bloc : les colonnes de contexte du niveau. Repli : le niveau suivant, du
 plus détaillé au plus général.
