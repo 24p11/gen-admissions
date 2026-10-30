@@ -87,7 +87,7 @@ La règle d'entrée en UHCD (étape A6) : seules les venues de situation
 d'UHCD est un RUM, donc un séjour) ; les autres situations restent dans les
 box des urgences quelle que soit leur durée. Le lit est demandé à la 6e heure
 du passage (`seuil_uhcd_h`) : pour `mono_uhcd`, il est occupé jusqu'à la fin
-de la durée tirée en A5 (durée totale urgences + UHCD, plancher 6 h), sans
+de la durée tirée en A4 (durée totale urgences + UHCD, plancher 6 h), sans
 recours à `durees_ghm` ; pour `hospitalisation`, il n'est demandé que si la
 durée tirée dépasse 6 h, et il est gardé jusqu'à l'obtention du lit de
 service. Faute de lit d'UHCD, le patient reste aux urgences (lit brancard)
@@ -525,20 +525,32 @@ catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
 l'arrivée quelle que soit l'année : la table décrit la saisonnalité.
 
 **Usage.** Un seul tirage donne la situation et, le cas échéant, la racine.
-La gravité (A4), la durée du passage (A5) et le premier service (A7) sont
+La durée du passage (A4), la gravité (A5) et le premier service (A7) sont
 tirés ensuite sachant la situation.
 
-### `gravite_urgences.csv` — la gravité CCMU (A4)
+### `gravite_urgences.csv` — la gravité CCMU (A5)
 
 | Colonne | Contenu |
 | --- | --- |
-| `classe_age`, `situation`, `gravite` (1 à 5), `part` | bloc : `classe_age × situation` |
+| `classe_age` | 0-17, 18-64, 65-74, 75+ |
+| `situation` | consultation, hospitalisation, mono_uhcd, transfert, deces, parti |
+| `tranche_h` | tranche de durée du passage (0-1, 1-2, 2-4, 4-6, 6-12, 12-24, 24+) |
+| `gravite` | CCMU 1 à 5 |
+| `part` | proportion |
 
-Repli : `classe_age` seule.
+Bloc : `classe_age × situation × tranche_h`. Repli : `classe_age × situation`
+(lignes avec `tranche_h` vide), puis `classe_age` seule.
 
-**Calcul.** RPU, champ CCMU, part par classe d'âge et situation. Les CCMU
-P et D sont rattachées respectivement à 1 et à 5. La gravité est un attribut
-descriptif du RPU produit ; elle n'influence aucun autre tirage.
+**Calcul.** RPU, champ CCMU, part de chaque gravité par classe d'âge,
+situation et tranche de durée de passage. Les CCMU P et D sont rattachées
+respectivement à 1 et à 5.
+
+**Usage.** La gravité est tirée en dernier, après la situation (A3) et la
+durée (A4), sachant les deux : les RPU produits ont ainsi des gravités
+cohérentes avec l'issue et le temps de passage, sans que la gravité
+n'influence aucun autre tirage. Tirer la durée puis la gravité sachant la
+durée donne la même distribution jointe que l'inverse, pour des tables
+beaucoup plus légères.
 
 ### `classes_tension.csv` — les bornes de la tension du jour (D1)
 
@@ -559,7 +571,7 @@ les deux bornes sont les terciles (33e et 67e centiles). D'autres bornes sont
 possibles (seuils de l'établissement) ; ce qui compte est qu'elles soient
 les mêmes pour estimer les tables et pour simuler.
 
-### `durees_passage_urgences.csv` — combien de temps aux urgences (A5)
+### `durees_passage_urgences.csv` — combien de temps aux urgences (A4)
 
 | Colonne | Contenu |
 | --- | --- |
@@ -658,8 +670,8 @@ lit, reports d'entrées programmées), de préférence par classe de tension.
 | A1 | instant d'arrivée aux urgences | `structure.yaml` (passages_par_an), `profil_arrivees_urgences.csv` |
 | A2 | classe d'âge, sexe | `profil_patients_urgences.csv` |
 | A3 | situation de la venue et racine de GHM | `venues_urgences.csv` |
-| A4 | gravité CCMU | `gravite_urgences.csv` |
-| A5 | durée du passage | `durees_passage_urgences.csv` (+ tension du jour) |
+| A4 | durée du passage | `durees_passage_urgences.csv` (+ tension du jour) |
+| A5 | gravité CCMU, sachant situation et tranche de durée | `gravite_urgences.csv` |
 | A6 | lit d'UHCD à la 6e heure (situations hospitalisation et mono_uhcd) | `structure.yaml` (seuil_uhcd_h) |
 | A7 | premier service (situation hospitalisation) | `premier_service_racine.csv` |
 | B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (lits, occupation_visee), `durees_passage.csv`, tables A3 et A7 |
