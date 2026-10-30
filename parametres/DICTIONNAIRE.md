@@ -503,12 +503,19 @@ mois.
 | `periode` | mois, 1 à 12 |
 | `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `situation` | `consultation`, `hospitalisation`, `mono_uhcd`, `transfert`, `deces`, `parti` |
-| `racine_ghm` | racine du séjour, remplie pour `hospitalisation` et `mono_uhcd` seulement, vide sinon |
+| `gravite` | CCMU 1 à 5, remplie pour `consultation`, `transfert`, `deces`, `parti` ; vide sinon |
+| `racine_ghm` | racine du séjour, remplie pour `hospitalisation` et `mono_uhcd` ; vide sinon |
 | `part` | proportion |
 
-Bloc : `periode × classe_age` (les parts de toutes les situations et racines
-d'un mois et d'une classe d'âge somment à 1). Repli : `classe_age` seule
-(lignes avec `periode` vide).
+Bloc : `periode × classe_age` (les parts de toutes les lignes d'un mois et
+d'une classe d'âge somment à 1). Repli : `classe_age` seule (lignes avec
+`periode` vide).
+
+**Le principe.** Chaque venue est caractérisée par sa situation et par ce
+qui décrit le mieux sa gravité : la CCMU quand elle n'est pas hospitalisée,
+la racine de GHM quand elle l'est. Ces deux informations sont tirées
+ensemble avec la situation, parce qu'elles ne se déduisent pas l'une de
+l'autre.
 
 **Les situations.** `consultation` : retour à domicile sans séjour ;
 `hospitalisation` : séjour comportant au moins un passage dans un service
@@ -517,40 +524,40 @@ d'UHCD ; `transfert` : vers un autre établissement ; `deces` ; `parti` :
 parti sans attendre ou contre avis.
 
 **Calcul.** RPU chaînés aux séjours PMSI (un ou plusieurs établissements où
-ce chaînage existe). Pour chaque venue, la situation d'après le mode de
-sortie du RPU et, pour les venues suivies d'un séjour, d'après les RUM du
-séjour (UHCD seule ou non) ; la racine d'après le GHM du séjour. Pour chaque
-mois d'arrivée et classe d'âge, compter par (situation, racine) ; seuil et
-catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
+ce chaînage existe). Pour chaque venue, la situation d'après l'existence
+d'un séjour chaîné et ses RUM (UHCD seule ou non), puis, à défaut, d'après
+le mode de sortie du RPU ; la racine d'après le GHM du séjour ; la gravité
+d'après la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque mois
+d'arrivée et classe d'âge, compter par (situation, gravité, racine) ; seuil
+et catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
 l'arrivée quelle que soit l'année : la table décrit la saisonnalité.
 
-**Usage.** Un seul tirage donne la situation et, le cas échéant, la racine.
-La durée du passage (A4), la gravité (A5) et le premier service (A7) sont
-tirés ensuite sachant la situation.
+**Usage.** Un seul tirage donne la situation et sa caractérisation. La
+durée du passage (A4) est tirée ensuite sachant la situation et, pour les
+non hospitalisés, la gravité ; pour les hospitalisés, la gravité du RPU est
+tirée en dernier (A5) ; le premier service (A7) est tiré sachant la racine.
 
-### `gravite_urgences.csv` — la gravité CCMU (A5)
+### `gravite_urgences.csv` — la gravité CCMU des hospitalisés (A5)
 
 | Colonne | Contenu |
 | --- | --- |
 | `classe_age` | 0-17, 18-64, 65-74, 75+ |
-| `situation` | consultation, hospitalisation, mono_uhcd, transfert, deces, parti |
+| `situation` | `hospitalisation`, `mono_uhcd` seulement |
 | `tranche_h` | tranche de durée du passage (0-1, 1-2, 2-4, 4-6, 6-12, 12-24, 24+) |
 | `gravite` | CCMU 1 à 5 |
 | `part` | proportion |
 
 Bloc : `classe_age × situation × tranche_h`. Repli : `classe_age × situation`
-(lignes avec `tranche_h` vide), puis `classe_age` seule.
+(lignes avec `tranche_h` vide).
 
-**Calcul.** RPU, champ CCMU, part de chaque gravité par classe d'âge,
-situation et tranche de durée de passage. Les CCMU P et D sont rattachées
-respectivement à 1 et à 5.
+**Calcul.** RPU des venues hospitalisées (séjour chaîné), champ CCMU, part
+de chaque gravité par classe d'âge, situation et tranche de durée de
+passage.
 
-**Usage.** La gravité est tirée en dernier, après la situation (A3) et la
-durée (A4), sachant les deux : les RPU produits ont ainsi des gravités
-cohérentes avec l'issue et le temps de passage, sans que la gravité
-n'influence aucun autre tirage. Tirer la durée puis la gravité sachant la
-durée donne la même distribution jointe que l'inverse, pour des tables
-beaucoup plus légères.
+**Usage.** Pour les hospitalisés, c'est le GHM qui porte l'information de
+gravité ; la CCMU n'est qu'un attribut du RPU produit, tiré en dernier
+sachant la durée pour rester cohérent avec elle. Elle n'influence aucun
+autre tirage.
 
 ### `classes_tension.csv` — les bornes de la tension du jour (D1)
 
@@ -576,26 +583,28 @@ les mêmes pour estimer les tables et pour simuler.
 | Colonne | Contenu |
 | --- | --- |
 | `situation` | consultation, hospitalisation, mono_uhcd, transfert, deces, parti |
+| `gravite` | CCMU 1 à 5 pour les situations sans séjour ; vide pour hospitalisation et mono_uhcd |
 | `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `classe_tension` | basse, moyenne, haute |
 | `tranche_h` | 0-1, 1-2, 2-4, 4-6, 6-12, 12-24, 24+ |
 | `part` | proportion |
 
-Bloc : `situation × classe_age × classe_tension`. Repli : `situation × classe_age`
-(lignes avec `classe_tension` vide).
+Bloc : `situation × gravite × classe_age × classe_tension`. Repli :
+`situation × gravite × classe_age` (lignes avec `classe_tension` vide), puis
+`situation × classe_age` (gravité vide).
 
 **Calcul.** RPU : durée = sortie moins arrivée, en heures, *UHCD comprise*
 (la sortie du RPU est la sortie de la structure des urgences, UHCD incluse ;
 à vérifier selon la façon dont les RPU sont produits). Chaque passage reçoit
-la classe de tension du jour de son arrivée. Pour la situation `mono_uhcd`,
-la durée est celle de l'ensemble urgences + UHCD et sert de durée de séjour
-(plancher 6 h au tirage). Pour la situation
-`hospitalisation`, ne garder que les passages dont le premier service du
-séjour est de rang 1 dans `premier_service_racine.csv` :
-c'est la durée « sans redirection » ; la redirection est portée par la table
-suivante. Compter par tranche, seuil et catégories rares, normaliser. Le
-simulateur tire une tranche, puis une valeur uniforme dans la tranche (pour
-`24+`, uniforme entre 24 et 48 h).
+la classe de tension du jour de son arrivée, et, pour les situations sans
+séjour, sa CCMU. Pour la situation `mono_uhcd`, la durée est celle de
+l'ensemble urgences + UHCD et sert de durée de séjour (plancher 6 h au
+tirage). Pour la situation `hospitalisation`, ne garder que les passages
+dont le premier service du séjour est de rang 1 dans
+`premier_service_racine.csv` : c'est la durée « sans redirection » ; la
+redirection est portée par la table suivante. Compter par tranche, seuil et
+catégories rares, normaliser. Le simulateur tire une tranche, puis une
+valeur uniforme dans la tranche (pour `24+`, uniforme entre 24 et 48 h).
 
 ### `supplement_rang2.csv` — l'attente supplémentaire avant un service exceptionnel (D4)
 
@@ -669,9 +678,9 @@ lit, reports d'entrées programmées), de préférence par classe de tension.
 | --- | --- | --- |
 | A1 | instant d'arrivée aux urgences | `structure.yaml` (passages_par_an), `profil_arrivees_urgences.csv` |
 | A2 | classe d'âge, sexe | `profil_patients_urgences.csv` |
-| A3 | situation de la venue et racine de GHM | `venues_urgences.csv` |
-| A4 | durée du passage | `durees_passage_urgences.csv` (+ tension du jour) |
-| A5 | gravité CCMU, sachant situation et tranche de durée | `gravite_urgences.csv` |
+| A3 | situation de la venue, avec sa CCMU (sans séjour) ou sa racine de GHM (avec séjour) | `venues_urgences.csv` |
+| A4 | durée du passage, sachant situation et gravité | `durees_passage_urgences.csv` (+ tension du jour) |
+| A5 | gravité CCMU des hospitalisés, sachant situation et tranche de durée | `gravite_urgences.csv` |
 | A6 | lit d'UHCD à la 6e heure (situations hospitalisation et mono_uhcd) | `structure.yaml` (seuil_uhcd_h) |
 | A7 | premier service (situation hospitalisation) | `premier_service_racine.csv` |
 | B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (lits, occupation_visee), `durees_passage.csv`, tables A3 et A7 |
