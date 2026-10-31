@@ -65,6 +65,18 @@ Les bornes sont des âges révolus à l'entrée.
 | `duree_j` | `0` à `60`, puis `60+` | durée de séjour en jours entiers (date de sortie moins date d'entrée) |
 | `rang` | `1`, `2`, `3` | 1 service habituel (part ≥ 10 %) ; 2 service exceptionnel (observé au-dessus du seuil d'effectif, part < 10 %) ; 3 service complété par la règle des catégories rares (effectif sous le seuil). Le rang croît avec la rareté : plus petit = mobilisé en premier |
 
+**Périmètre de calcul.** L'hôpital simulé est un site ; tout ce qui dépend
+de son organisation se calcule sur ce site seul : `venues_urgences`,
+`durees_passage_urgences`, `supplement_rang2`, `classes_tension`,
+`gravite_urgences`, les profils (arrivées, patients, entrées programmées,
+sorties) et `structure.yaml`. Les tables qui décrivent des pratiques
+médicales et demandent des effectifs importants (`premier_service_racine`,
+`table_passage`, `casemix`, `durees_passage`) se calculent sur le site s'il
+est assez grand, sinon sur plusieurs sites partageant la même nomenclature
+de spécialités. Les tables par GHM (`niveaux`, `durees_ghm`,
+`soins_critiques_ghm`, `sexe_racine`, `sorties`) peuvent venir d'une base
+nationale.
+
 **Racine de GHM.** Les cinq premiers caractères du GHM (par exemple `05M09`).
 Le GHM complet ajoute le niveau (`05M093`).
 
