@@ -295,6 +295,45 @@ def table_passage_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Durées de passage par spécialité (durees_passage.csv)
+# ---------------------------------------------------------------------------
+
+def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
+    """Une ligne par passage de spécialité (RUM consécutifs de même spécialité
+    fusionnés), avec sa durée en jours décimaux.
+
+    Colonnes attendues : ``id_sejour``, ``rang``, ``specialite`` (UHCD déjà
+    retirée), ``date_entree``, ``date_sortie`` (datetime), ``mode_entree``,
+    ``classe_age``.
+    """
+    df = rum.sort_values(["id_sejour", "rang"]).reset_index(drop=True)
+    nouveau = ~(df["id_sejour"].eq(df["id_sejour"].shift()) & df["specialite"].eq(df["specialite"].shift()))
+    df["id_passage"] = nouveau.cumsum()
+    p = df.groupby("id_passage").agg(
+        specialite=("specialite", "first"), mode_entree=("mode_entree", "first"),
+        classe_age=("classe_age", "first"),
+        date_entree=("date_entree", "min"), date_sortie=("date_sortie", "max"))
+    p["duree_j"] = (p["date_sortie"] - p["date_entree"]).dt.total_seconds() / 86400
+    return p[["specialite", "mode_entree", "classe_age", "duree_j"]].reset_index(drop=True)
+
+
+def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int = SEUIL_EFFECTIF) -> pd.DataFrame:
+    """durees_passage.csv : médiane, quartiles et moyenne par spécialité × mode
+    d'entrée × classe d'âge (blocs d'au moins ``seuil`` passages), plus le
+    repli par spécialité seule."""
+    def resume(bloc: list[str]) -> pd.DataFrame:
+        g = passages.groupby(bloc)["duree_j"]
+        t = g.agg(n="size", mediane_j="median", moyenne_j="mean",
+                  q1_j=lambda x: x.quantile(0.25), q3_j=lambda x: x.quantile(0.75)).reset_index()
+        return t[t["n"] >= seuil].drop(columns="n")
+    fin = resume(["specialite", "mode_entree", "classe_age"])
+    repli = resume(["specialite"])
+    colonnes = ["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"]
+    return (pd.concat([fin, repli], ignore_index=True).reindex(columns=colonnes)
+            .fillna({"mode_entree": "", "classe_age": ""}).round(3))
+
+
+# ---------------------------------------------------------------------------
 # Soins critiques par GHM (soins_critiques_ghm.csv)
 # ---------------------------------------------------------------------------
 

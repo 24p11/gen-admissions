@@ -22,7 +22,7 @@ SORTIE = RACINE / "notebooks" / "preparation_parametres.ipynb"
 CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/preparation_parametres.py :
 # normaliser, attribuer_rang, table_proportions, additionner, services_vers_yaml,
 # situation_venue, gravite_ccmu, effectifs_venues, venues_depuis_effectifs,
-# premier_service_depuis_effectifs, etapes_sejours, effectifs_passage,
+# premier_service_depuis_effectifs, etapes_sejours, effectifs_passage, passages_specialite, durees_passage_depuis_passages,
 # table_passage_depuis_effectifs, soins_critiques_depuis_effectifs, verifier_table,
 # et les réglages SEUIL_EFFECTIF, PART_MIN_SERVICE_HABITUEL, CLASSES_AGE, CLASSES_AGE_DUREE, TRANCHES_H.
 # Le plus simple est d'installer le dépôt une fois pour toutes (depuis sa racine) : pip install -e .
