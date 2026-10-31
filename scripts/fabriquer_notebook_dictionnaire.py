@@ -19,43 +19,23 @@ RACINE = Path(__file__).resolve().parents[1]
 SOURCE = RACINE / "parametres" / "DICTIONNAIRE.md"
 SORTIE = RACINE / "notebooks" / "dictionnaire_parametres.ipynb"
 
-CELLULE_REGLAGES = '''# Réglages communs à toutes les extractions
+CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/extraction_v2.py :
+# normaliser, attribuer_rang, table_proportions, additionner, services_vers_yaml,
+# situation_venue, gravite_ccmu, effectifs_venues, venues_depuis_effectifs,
+# premier_service_depuis_effectifs, etapes_sejours, effectifs_passage,
+# table_passage_depuis_effectifs, soins_critiques_depuis_effectifs, verifier_table,
+# et les réglages SEUIL_EFFECTIF, PART_MIN_SERVICE_HABITUEL, CLASSES_AGE, CLASSES_AGE_DUREE, TRANCHES_H.
+import sys
+sys.path.insert(0, "..")                       # le notebook est dans notebooks/, le module dans gen_admissions/
+from gen_admissions.extraction_v2 import *
+
 import pandas as pd
 import numpy as np
 
-SEUIL_EFFECTIF = 100            # séjours, sur la période d'observation
-PART_MIN_SERVICE_HABITUEL = 0.10
-DOSSIER_SORTIE = 'parametres/mon_etablissement'
-
-CLASSES_AGE = ['0-17', '18-64', '65-74', '75+']
-CLASSES_AGE_DUREE = ['0-59', '60+']
-TRANCHES_H = ['0-1', '1-2', '2-4', '4-6', '6-12', '12-24', '24+']
-
-
-def classe_age(age):
-    return '0-17' if age <= 17 else '18-64' if age <= 64 else '65-74' if age <= 74 else '75+'
-
-
-def classe_age_duree(age):
-    return '0-59' if age <= 59 else '60+'
-
-
-def normaliser(df, colonnes_bloc, colonne_effectif='n', seuil=SEUIL_EFFECTIF):
-    """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
-
-    Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
-    leur masse totale divisée par leur nombre. Renvoie les colonnes du bloc,
-    les colonnes de catégorie, `part` et `observe` (True si la ligne était
-    au-dessus du seuil).
-    """
-    df = df.copy()
-    total = df.groupby(colonnes_bloc)[colonne_effectif].transform('sum')
-    rare = df[colonne_effectif] < seuil
-    df['observe'] = ~rare
-    masse_rare = df[colonne_effectif].where(rare, 0).groupby([df[c] for c in colonnes_bloc]).transform('sum')
-    nb_rare = rare.groupby([df[c] for c in colonnes_bloc]).transform('sum')
-    df['part'] = np.where(rare, masse_rare / nb_rare.replace(0, np.nan), df[colonne_effectif]) / total
-    return df.drop(columns=[colonne_effectif]).round({'part': 6})
+DOSSIER_SORTIE = "parametres/mon_etablissement"   # où écrire les fichiers de proportions
+DOSSIER_TRAVAIL = "travail"                        # effectifs intermédiaires par année (non diffusés)
+ANNEES = range(2020, 2025)
+connexion = None                                   # à remplacer par votre connexion à la base
 '''
 
 
