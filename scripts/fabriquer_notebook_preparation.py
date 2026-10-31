@@ -25,8 +25,16 @@ CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont
 # premier_service_depuis_effectifs, etapes_sejours, effectifs_passage,
 # table_passage_depuis_effectifs, soins_critiques_depuis_effectifs, verifier_table,
 # et les réglages SEUIL_EFFECTIF, PART_MIN_SERVICE_HABITUEL, CLASSES_AGE, CLASSES_AGE_DUREE, TRANCHES_H.
+# Le plus simple est d'installer le dépôt une fois pour toutes (depuis sa racine) : pip install -e .
+# À défaut, on retrouve la racine du dépôt en remontant depuis le dossier courant.
 import sys
-sys.path.insert(0, "..")                       # le notebook est dans notebooks/, le module dans gen_admissions/
+from pathlib import Path
+
+try:
+    import gen_admissions  # déjà installé (pip install -e .)
+except ModuleNotFoundError:
+    racine = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "gen_admissions").is_dir())
+    sys.path.insert(0, str(racine))
 from gen_admissions.preparation_parametres import *
 
 import pandas as pd
