@@ -521,13 +521,21 @@ l'autre.
 `hospitalisation` : séjour comportant au moins un passage dans un service
 autre que l'UHCD ; `mono_uhcd` : séjour dont tous les RUM sont dans l'unité
 d'UHCD ; `transfert` : vers un autre établissement ; `deces` ; `parti` :
-parti sans attendre ou contre avis.
+parti sans attendre ou contre avis (facultative, voir calcul).
 
-**Calcul.** RPU chaînés aux séjours PMSI (un ou plusieurs établissements où
-ce chaînage existe). Pour chaque venue, la situation d'après l'existence
-d'un séjour chaîné et ses RUM (UHCD seule ou non), puis, à défaut, d'après
-le mode de sortie du RPU ; la racine d'après le GHM du séjour ; la gravité
-d'après la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque mois
+**Calcul.** RPU chaînés aux séjours PMSI et aux données administratives
+(un ou plusieurs établissements où ce chaînage existe). Du RPU, on ne
+prend que les faits : numéro de chaînage, dates et heures d'arrivée et de
+sortie, âge, sexe, CCMU. La situation est reconstruite par le chaînage,
+dans cet ordre : un séjour chaîné existe → `hospitalisation` ou
+`mono_uhcd` selon ses RUM (UHCD seule ou non) ; sinon, d'après la sortie
+administrative de la venue → `deces`, `transfert` (vers un autre
+établissement) ou `consultation`. Les champs codés du RPU (mode de sortie,
+orientation) ne servent qu'à défaut, leur fiabilité étant variable d'un
+établissement à l'autre (une admission sur place peut y être codée en
+mutation). La situation `parti` n'est produite que si elle est mesurable ;
+sinon elle est fusionnée dans `consultation`. La racine vient du GHM du
+séjour ; la gravité de la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque mois
 d'arrivée et classe d'âge, compter par (situation, gravité, racine) ; seuil
 et catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
 l'arrivée quelle que soit l'année : la table décrit la saisonnalité.
