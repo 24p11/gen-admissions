@@ -530,9 +530,9 @@ sortie, âge, sexe, CCMU. La situation est reconstruite dans cet ordre, le
 séjour chaîné faisant foi : un séjour chaîné existe → `hospitalisation` ou
 `mono_uhcd` selon ses RUM (UHCD seule ou non), quel que soit le mode de
 sortie du RPU ; sinon, d'après le mode de sortie du RPU → `9` : `deces` ;
-`6` ou `7` : `transfert` (une « mutation interne » sans séjour retrouvé est
-en pratique un départ vers un autre site de la même entité juridique) ;
-tout autre code → `consultation`. La situation `parti` n'est produite que
+`7` : `transfert` ; `6` (admission sur place) sans séjour retrouvé : devenir
+inconnu, défaut de chaînage, exclu du calcul et compté comme indicateur de
+qualité ; tout autre code → `consultation`. La situation `parti` n'est produite que
 si elle est mesurable de façon fiable ; sinon elle est fusionnée dans
 `consultation`. Les conventions de codage du RPU variant d'un établissement
 à l'autre, la lecture des codes est à adapter au site. La racine vient du GHM du

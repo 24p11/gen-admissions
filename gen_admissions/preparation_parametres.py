@@ -175,15 +175,16 @@ def situation_venue(v: pd.DataFrame) -> pd.Series:
     RPU ne sert qu'aux venues sans séjour.
 
     Colonnes attendues : ``nb_rum`` et ``nb_rum_hors_uhcd`` (vides sans séjour
-    chaîné), ``mode_sortie_rpu`` (6 mutation, 7 transfert, 8 domicile, 9 décès).
-    Un 6 sans séjour retrouvé est lu comme un départ vers un autre site.
+    chaîné), ``mode_sortie_rpu`` (6 mutation interne, 7 transfert, 8 domicile,
+    9 décès). Un 6 (admission sur place) sans séjour retrouvé est un devenir
+    ``inconnu`` : défaut de chaînage, exclu du calcul et compté.
     """
     a_sejour = v["nb_rum"].fillna(0) > 0
     hors_uhcd = v["nb_rum_hors_uhcd"].fillna(0) > 0
     mode = v["mode_sortie_rpu"].astype(str).str.strip()
     return pd.Series(np.select(
-        [a_sejour & hors_uhcd, a_sejour & ~hors_uhcd, mode.eq("9"), mode.isin(["6", "7"])],
-        ["hospitalisation", "mono_uhcd", "deces", "transfert"],
+        [a_sejour & hors_uhcd, a_sejour & ~hors_uhcd, mode.eq("9"), mode.eq("7"), mode.eq("6")],
+        ["hospitalisation", "mono_uhcd", "deces", "transfert", "inconnu"],
         default="consultation"), index=v.index)
 
 
@@ -199,11 +200,16 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     Colonnes attendues en plus de celles de ``situation_venue`` : ``periode``,
     ``classe_age``, ``ccmu``, ``ghm`` (vide sans séjour). La gravité n'est
     remplie que pour les situations sans séjour, la racine que pour les
-    situations avec séjour. Les séjours chaînés sans GHM (non groupés) sont
-    exclus.
+    situations avec séjour. Sont exclus, et comptés : les venues de devenir
+    ``inconnu`` (admission sur place sans séjour retrouvé) et les séjours
+    chaînés sans GHM (non groupés).
     """
     v = v.copy()
     v["situation"] = situation_venue(v)
+    inconnu = v["situation"].eq("inconnu")
+    if inconnu.any():
+        print(f"{inconnu.mean():.1%} de venues au devenir inconnu (admission codée sans séjour retrouvé), exclues")
+    v = v[~inconnu]
     avec_sejour = v["situation"].isin(AVEC_SEJOUR)
     v["gravite"] = np.where(avec_sejour, "", gravite_ccmu(v["ccmu"]))
     v["racine_ghm"] = np.where(avec_sejour, v["ghm"].astype(str).str[:5], "")
