@@ -526,20 +526,16 @@ parti sans attendre ou contre avis (facultative, voir calcul).
 **Calcul.** RPU chaînés aux séjours PMSI et aux données administratives
 (un ou plusieurs établissements où ce chaînage existe). Du RPU, on ne
 prend que les faits : numéro de chaînage, dates et heures d'arrivée et de
-sortie, âge, sexe, CCMU. La situation est reconstruite en croisant le mode de
-sortie du RPU et l'existence d'un séjour chaîné, qui doivent être
-cohérents : une admission sur place (codée `6`, mutation interne) doit avoir
-un séjour, un transfert (`7`), un décès (`9`) ou un retour à domicile (`8`)
-n'en ont pas. Cas cohérents : séjour chaîné avec `6` → `hospitalisation`
-ou `mono_uhcd` selon ses RUM (UHCD seule ou non) ; pas de séjour avec `9` →
-`deces` ; avec `7` → `transfert` (vers un autre établissement, même entité
-juridique comprise) ; avec tout autre code → `consultation`. Cas
-incohérents (`6` sans séjour, séjour sans `6`) : anomalies, exclues du
-calcul et comptées, leur part étant un indicateur de qualité du chaînage.
-La situation `parti` n'est produite que si elle est mesurable de façon
-fiable ; sinon elle est fusionnée dans `consultation`. Les conventions de
-codage du RPU variant d'un établissement à l'autre, cette règle de
-cohérence est à adapter au site. La racine vient du GHM du
+sortie, âge, sexe, CCMU. La situation est reconstruite dans cet ordre, le
+séjour chaîné faisant foi : un séjour chaîné existe → `hospitalisation` ou
+`mono_uhcd` selon ses RUM (UHCD seule ou non), quel que soit le mode de
+sortie du RPU ; sinon, d'après le mode de sortie du RPU → `9` : `deces` ;
+`6` ou `7` : `transfert` (une « mutation interne » sans séjour retrouvé est
+en pratique un départ vers un autre site de la même entité juridique) ;
+tout autre code → `consultation`. La situation `parti` n'est produite que
+si elle est mesurable de façon fiable ; sinon elle est fusionnée dans
+`consultation`. Les conventions de codage du RPU variant d'un établissement
+à l'autre, la lecture des codes est à adapter au site. La racine vient du GHM du
 séjour ; la gravité de la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque mois
 d'arrivée et classe d'âge, compter par (situation, gravité, racine) ; seuil
 et catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
