@@ -526,14 +526,17 @@ parti sans attendre ou contre avis (facultative, voir calcul).
 **Calcul.** RPU chaînés aux séjours PMSI et aux données administratives
 (un ou plusieurs établissements où ce chaînage existe). Du RPU, on ne
 prend que les faits : numéro de chaînage, dates et heures d'arrivée et de
-sortie, âge, sexe, CCMU. La situation est reconstruite par le chaînage,
-dans cet ordre : un séjour chaîné existe → `hospitalisation` ou
-`mono_uhcd` selon ses RUM (UHCD seule ou non) ; sinon, d'après la sortie
-administrative de la venue → `deces`, `transfert` (vers un autre
-établissement) ou `consultation`. Les champs codés du RPU (mode de sortie,
-orientation) ne servent qu'à défaut, leur fiabilité étant variable d'un
-établissement à l'autre (une admission sur place peut y être codée en
-mutation). La situation `parti` n'est produite que si elle est mesurable ;
+sortie, âge, sexe, CCMU. La situation est reconstruite dans cet ordre : un
+séjour chaîné existe → `hospitalisation` ou `mono_uhcd` selon ses RUM
+(UHCD seule ou non) ; sinon, le mode de sortie du RPU, lu avec prudence et
+limité à deux cas → `9` : `deces` ; `7` : `transfert` (vers un autre
+établissement, même entité juridique comprise) ; tout autre code, y compris
+une « mutation » (`6`) sans séjour retrouvé → `consultation`. Les champs
+codés du RPU ont une fiabilité variable d'un établissement à l'autre (une
+admission sur place peut y être codée en mutation) : c'est l'existence du
+séjour qui fait foi, et le RPU ne sert qu'à distinguer, parmi les venues
+sans lit occupé, les décès et les départs vers un autre établissement. La
+situation `parti` n'est produite que si elle est mesurable de façon fiable ;
 sinon elle est fusionnée dans `consultation`. La racine vient du GHM du
 séjour ; la gravité de la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque mois
 d'arrivée et classe d'âge, compter par (situation, gravité, racine) ; seuil
