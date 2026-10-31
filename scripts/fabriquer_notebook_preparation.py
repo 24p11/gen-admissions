@@ -1,4 +1,4 @@
-"""Fabrique notebooks/dictionnaire_parametres.ipynb à partir de parametres/DICTIONNAIRE.md.
+"""Fabrique notebooks/preparation_parametres.ipynb à partir de parametres/DICTIONNAIRE.md.
 
 Le notebook reprend le dictionnaire en cellules markdown, avec le récapitulatif
 en tête (liens vers chaque fichier) et, sous la description de chaque fichier,
@@ -17,9 +17,9 @@ from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 RACINE = Path(__file__).resolve().parents[1]
 SOURCE = RACINE / "parametres" / "DICTIONNAIRE.md"
-SORTIE = RACINE / "notebooks" / "dictionnaire_parametres.ipynb"
+SORTIE = RACINE / "notebooks" / "preparation_parametres.ipynb"
 
-CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/extraction_v2.py :
+CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/preparation_parametres.py :
 # normaliser, attribuer_rang, table_proportions, additionner, services_vers_yaml,
 # situation_venue, gravite_ccmu, effectifs_venues, venues_depuis_effectifs,
 # premier_service_depuis_effectifs, etapes_sejours, effectifs_passage,
@@ -27,7 +27,7 @@ CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont
 # et les réglages SEUIL_EFFECTIF, PART_MIN_SERVICE_HABITUEL, CLASSES_AGE, CLASSES_AGE_DUREE, TRANCHES_H.
 import sys
 sys.path.insert(0, "..")                       # le notebook est dans notebooks/, le module dans gen_admissions/
-from gen_admissions.extraction_v2 import *
+from gen_admissions.preparation_parametres import *
 
 import pandas as pd
 import numpy as np
