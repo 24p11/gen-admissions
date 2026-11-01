@@ -42,6 +42,8 @@ class Reglages:
     bornes_age_duree: tuple = (59,)         # idem pour les tables par GHM complet
     bornes_tranches_h: tuple = (1, 2, 4, 6, 12, 24)  # bornes des tranches horaires
     colonnes_site: tuple = ()               # colonnes ajoutées à tous les blocs, ex. ("hopital",) pour un calcul par site
+    colonnes_saison: tuple = ()             # colonnes ajoutées aux blocs des tables saisonnières (venues, arrivées), ex. ("saison",)
+    mois_debut_saison: int = 9              # la saison 2023-2024 va de septembre 2023 à août 2024
     situations_sans_sejour: tuple = ("consultation", "transfert", "deces", "parti")
     situations_avec_sejour: tuple = ("hospitalisation", "mono_uhcd")
     colonnes_venues: tuple = ("periode", "classe_age", "situation", "gravite", "racine_ghm")
@@ -92,6 +94,19 @@ def configurer(**valeurs) -> Reglages:
 def avec_site(colonnes: Sequence[str]) -> list[str]:
     """Colonnes de bloc complétées par les colonnes de site (REGLAGES.colonnes_site)."""
     return [*REGLAGES.colonnes_site, *colonnes]
+
+
+def avec_saison(colonnes: Sequence[str]) -> list[str]:
+    """Colonnes de bloc complétées par les colonnes de saison (tables saisonnières seulement)."""
+    return [*REGLAGES.colonnes_saison, *colonnes]
+
+
+def saison(dates: pd.Series) -> pd.Series:
+    """Libellé de saison d'une date, « 2023-2024 » pour septembre 2023 à août 2024
+    (REGLAGES.mois_debut_saison fixe le mois de début)."""
+    d = pd.to_datetime(dates)
+    debut = d.dt.year.where(d.dt.month >= REGLAGES.mois_debut_saison, d.dt.year - 1)
+    return debut.astype(str) + "-" + (debut + 1).astype(str)
 
 
 def _classe(valeur: float, bornes: tuple, libelles: list[str]) -> str:
@@ -262,7 +277,8 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     Colonnes attendues en plus de celles de ``situation_venue`` : ``periode``,
     ``classe_age``, ``ccmu``, ``ghm`` (vide sans séjour). La gravité n'est
     remplie que pour les situations sans séjour, la racine que pour les
-    situations avec séjour. Sont exclus, et comptés : les venues de devenir
+    situations avec séjour. Si REGLAGES.colonnes_saison est renseigné, ``v`` doit
+    porter la colonne correspondante (voir ``saison``). Sont exclus, et comptés : les venues de devenir
     ``inconnu`` (admission sur place sans séjour retrouvé) et les séjours
     chaînés sans GHM (non groupés).
     """
@@ -276,13 +292,13 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     v["gravite"] = np.where(avec_sejour, "", gravite_ccmu(v["ccmu"]))
     v["racine_ghm"] = np.where(avec_sejour, v["ghm"].astype(str).str[:5], "")
     v = v[~(avec_sejour & v["ghm"].isna())]
-    return v.groupby(avec_site(REGLAGES.colonnes_venues)).size().reset_index(name="n")
+    return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues))).size().reset_index(name="n")
 
 
 def venues_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
     """venues_urgences.csv : bloc mois × classe d'âge, repli classe d'âge seule."""
-    return table_proportions(effectifs, ["periode", "classe_age"], ["situation", "gravite", "racine_ghm"],
-                             replis=[["classe_age"]])
+    return table_proportions(effectifs, avec_saison(["periode", "classe_age"]), ["situation", "gravite", "racine_ghm"],
+                             replis=[avec_saison(["classe_age"])])
 
 
 # ---------------------------------------------------------------------------
@@ -298,7 +314,7 @@ def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series]) -> pd.D
     morceaux = []
     for dimension, valeur in dimensions.items():
         t = df.assign(dimension=dimension, valeur=np.asarray(valeur))
-        morceaux.append(t.groupby(avec_site(["dimension", "valeur"])).size().reset_index(name="n"))
+        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"]))).size().reset_index(name="n"))
     return pd.concat(morceaux, ignore_index=True)
 
 
@@ -311,7 +327,7 @@ def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
 
 def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
     """Parts par dimension (elles somment à 1 dans chaque dimension), sans seuil."""
-    cles = avec_site(["dimension"])
+    cles = avec_site(avec_saison(["dimension"]))
     t = effectifs.copy()
     t["part"] = (t["n"] / t.groupby(cles)["n"].transform("sum")).round(6)
     return t.drop(columns="n").sort_values(cles + ["valeur"]).reset_index(drop=True)
