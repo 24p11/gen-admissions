@@ -77,6 +77,14 @@ de spécialités. Les tables par GHM (`niveaux`, `durees_ghm`,
 `soins_critiques_ghm`, `sexe_racine`, `sorties`) peuvent venir d'une base
 nationale.
 
+**Période de calcul.** Plusieurs années (cinq) là où le nombre de cases
+l'exige : tables par GHM ou racine, premier service, table de passage,
+casemix. Une seule année, la plus récente, là où c'est la fidélité à la
+pratique actuelle qui compte : profils (patients, entrées programmées,
+sorties), durées de passage, classes de tension, durées de passage aux
+urgences et supplément de rang 2. Les tables saisonnières sont un cas à
+part : plusieurs saisons, chacune décrite séparément (voir ci-dessous).
+
 **Saisons.** Les deux tables qui portent la saisonnalité (`venues_urgences`,
 `profil_arrivees_urgences`) ne sont pas cumulées sur les années : chaque
 saison épidémiologique (de septembre à août, libellée `2023-2024`) y est

@@ -52,7 +52,8 @@ print(REGLAGES)
 
 DOSSIER_SORTIE = "parametres/mon_etablissement"   # où écrire les fichiers de proportions
 DOSSIER_TRAVAIL = "travail"                        # effectifs intermédiaires par année (non diffusés)
-ANNEES = range(2020, 2025)
+ANNEES = range(2020, 2025)                         # tables de comptage par GHM, racine, parcours : plusieurs années
+ANNEE_RECENTE = 2024                               # profils, durées, tension : la dernière année suffit
 connexion = None                                   # à remplacer par votre connexion à la base
 '''
 
