@@ -101,6 +101,12 @@ def avec_saison(colonnes: Sequence[str]) -> list[str]:
     return [*REGLAGES.colonnes_saison, *colonnes]
 
 
+def saisons_completes(annees: Iterable[int]) -> list[str]:
+    """Saisons entièrement couvertes par des années civiles : « 2020-2021 » si 2020 et 2021 y sont."""
+    annees = set(annees)
+    return [f"{a}-{a + 1}" for a in sorted(annees) if a + 1 in annees]
+
+
 def saison(dates: pd.Series) -> pd.Series:
     """Libellé de saison d'une date, « 2023-2024 » pour septembre 2023 à août 2024
     (REGLAGES.mois_debut_saison fixe le mois de début)."""

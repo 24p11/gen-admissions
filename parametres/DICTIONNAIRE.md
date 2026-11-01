@@ -85,8 +85,10 @@ normalisation. Une saison de grippe forte et une saison calme restent ainsi
 distinctes, et ce sont ces valeurs par saison que l'usage 2 aura à choisir
 ou à corriger. Le simulateur lit la saison désignée dans `structure.yaml`
 (`urgences: saison`) ; si aucune n'est désignée, il utilise la moyenne des
-parts sur les saisons présentes. Les autres tables, qui décrivent des
-pratiques stables, sont cumulées sur toute la période.
+parts sur les saisons présentes. Une saison n'est retenue que si ses deux
+années civiles sont dans la période extraite (cinq années civiles donnent
+quatre saisons complètes). Les autres tables, qui décrivent des pratiques
+stables, sont cumulées sur toute la période.
 
 **Racine de GHM.** Les cinq premiers caractères du GHM (par exemple `05M09`).
 Le GHM complet ajoute le niveau (`05M093`).
