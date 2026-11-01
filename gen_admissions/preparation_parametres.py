@@ -324,11 +324,23 @@ def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series]) -> pd.D
     return pd.concat(morceaux, ignore_index=True)
 
 
+COLONNES_PROFIL_ARRIVEES = ["dimension", "jour_semaine", "heure", "mois"]
+
+
 def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
-    """Effectifs des arrivées aux urgences par heure, jour de la semaine
-    (1 = lundi … 7 = dimanche) et mois. Colonne attendue : ``date_entree``."""
+    """Effectifs des arrivées aux urgences en deux composantes : ``semaine``
+    (jour de la semaine × heure, 1 = lundi … 7 = dimanche) et ``mois``.
+    Colonne attendue : ``date_entree`` (date et heure)."""
     d = pd.to_datetime(v["date_entree"])
-    return effectifs_profil(v, {"heure": d.dt.hour, "jour_semaine": d.dt.dayofweek + 1, "mois": d.dt.month})
+    base = v[avec_site(avec_saison([]))].copy()
+    semaine = base.assign(dimension="semaine", jour_semaine=(d.dt.dayofweek + 1).values, heure=d.dt.hour.values)
+    mois = base.assign(dimension="mois", mois=d.dt.month.values)
+    morceaux = [
+        semaine.groupby(avec_site(avec_saison(["dimension", "jour_semaine", "heure"]))).size().reset_index(name="n"),
+        mois.groupby(avec_site(avec_saison(["dimension", "mois"]))).size().reset_index(name="n"),
+    ]
+    return (pd.concat(morceaux, ignore_index=True)
+            .reindex(columns=avec_site(avec_saison(COLONNES_PROFIL_ARRIVEES)) + ["n"]).fillna(""))
 
 
 def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
@@ -336,7 +348,8 @@ def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
     cles = avec_site(avec_saison(["dimension"]))
     t = effectifs.copy()
     t["part"] = (t["n"] / t.groupby(cles)["n"].transform("sum")).round(6)
-    return t.drop(columns="n").sort_values(cles + ["valeur"]).reset_index(drop=True)
+    tri = cles + [c for c in ("valeur", "jour_semaine", "heure", "mois") if c in t.columns]
+    return t.drop(columns="n").sort_values(tri).reset_index(drop=True)
 
 
 # ---------------------------------------------------------------------------

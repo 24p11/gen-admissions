@@ -505,15 +505,21 @@ durée totale du séjour entre les étapes de la trajectoire (C6).
 | Colonne | Contenu |
 | --- | --- |
 | `saison` | saison épidémiologique, `2023-2024` |
-| `dimension` | `heure`, `jour_semaine`, `mois` |
-| `valeur` | 0 à 23 ; 1 (lundi) à 7 ; 1 à 12 |
+| `dimension` | `semaine` ou `mois` |
+| `jour_semaine`, `heure` | pour la dimension `semaine` : 1 (lundi) à 7, et 0 à 23 ; vides sinon |
+| `mois` | pour la dimension `mois` : 1 à 12 ; vide sinon |
 | `part` | proportion |
 
-Bloc : `saison × dimension`. Les trois profils sont multipliés entre eux ; le
-volume vient de `passages_par_an`.
+Bloc : `saison × dimension`. La dimension `semaine` croise le jour de la
+semaine et l'heure (168 cases : le rythme horaire du dimanche n'est pas
+celui du mardi) ; la dimension `mois` donne le poids de chaque mois. Les
+deux sont multipliées entre elles et par le volume annuel
+(`passages_par_an`) pour obtenir le rythme d'arrivée à chaque instant.
+Croiser aussi le mois (2 016 cases) serait trop fin pour une saison d'un
+site.
 
-**Calcul.** RPU : part des arrivées par heure, par jour de la semaine, par
-mois.
+**Calcul.** RPU d'une saison : part des arrivées par couple (jour de la
+semaine, heure), et part par mois.
 
 ### `profil_patients_urgences.csv` — qui arrive (A2)
 
