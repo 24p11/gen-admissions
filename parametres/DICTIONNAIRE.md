@@ -77,6 +77,17 @@ de spécialités. Les tables par GHM (`niveaux`, `durees_ghm`,
 `soins_critiques_ghm`, `sexe_racine`, `sorties`) peuvent venir d'une base
 nationale.
 
+**Saisons.** Les deux tables qui portent la saisonnalité (`venues_urgences`,
+`profil_arrivees_urgences`) ne sont pas cumulées sur les années : chaque
+saison épidémiologique (de septembre à août, libellée `2023-2024`) y est
+décrite séparément, dans une colonne `saison` qui fait partie du bloc de
+normalisation. Une saison de grippe forte et une saison calme restent ainsi
+distinctes, et ce sont ces valeurs par saison que l'usage 2 aura à choisir
+ou à corriger. Le simulateur lit la saison désignée dans `structure.yaml`
+(`urgences: saison`) ; si aucune n'est désignée, il utilise la moyenne des
+parts sur les saisons présentes. Les autres tables, qui décrivent des
+pratiques stables, sont cumulées sur toute la période.
+
 **Racine de GHM.** Les cinq premiers caractères du GHM (par exemple `05M09`).
 Le GHM complet ajoute le niveau (`05M093`).
 
@@ -163,6 +174,7 @@ services:                              # un bloc par service
 urgences:
   service: URG                         # le service qui reçoit les arrivées (ses lits sont ceux de l'UHCD)
   passages_par_an: 45000               # volume absolu, multiplié par les profils (A1)
+  saison: '2023-2024'                  # saison lue dans venues_urgences et profil_arrivees_urgences (absente : moyenne des saisons)
   seuil_uhcd_h: 6                      # durée de passage au-delà de laquelle un lit d'UHCD est demandé (A6)
   delai_transfert_h: 24                # attente de lit au-delà de laquelle un patient des urgences est transféré (D7)
 
@@ -490,11 +502,12 @@ durée totale du séjour entre les étapes de la trajectoire (C6).
 
 | Colonne | Contenu |
 | --- | --- |
+| `saison` | saison épidémiologique, `2023-2024` |
 | `dimension` | `heure`, `jour_semaine`, `mois` |
 | `valeur` | 0 à 23 ; 1 (lundi) à 7 ; 1 à 12 |
 | `part` | proportion |
 
-Bloc : chaque dimension. Les trois profils sont multipliés entre eux ; le
+Bloc : `saison × dimension`. Les trois profils sont multipliés entre eux ; le
 volume vient de `passages_par_an`.
 
 **Calcul.** RPU : part des arrivées par heure, par jour de la semaine, par
@@ -512,6 +525,7 @@ mois.
 
 | Colonne | Contenu |
 | --- | --- |
+| `saison` | saison épidémiologique de l'arrivée, `2023-2024` (septembre 2023 à août 2024) |
 | `periode` | mois, 1 à 12 |
 | `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `situation` | `consultation`, `hospitalisation`, `mono_uhcd`, `transfert`, `deces`, `parti` |
@@ -519,9 +533,9 @@ mois.
 | `racine_ghm` | racine du séjour, remplie pour `hospitalisation` et `mono_uhcd` ; vide sinon |
 | `part` | proportion |
 
-Bloc : `periode × classe_age` (les parts de toutes les lignes d'un mois et
-d'une classe d'âge somment à 1). Repli : `classe_age` seule (lignes avec
-`periode` vide).
+Bloc : `saison × periode × classe_age` (les parts de toutes les lignes d'une
+saison, d'un mois et d'une classe d'âge somment à 1). Repli :
+`saison × classe_age` (lignes avec `periode` vide).
 
 **Le principe.** Chaque venue est caractérisée par sa situation et par ce
 qui décrit le mieux sa gravité : la CCMU quand elle n'est pas hospitalisée,
@@ -548,10 +562,10 @@ qualité ; tout autre code → `consultation`. La situation `parti` n'est produi
 si elle est mesurable de façon fiable ; sinon elle est fusionnée dans
 `consultation`. Les conventions de codage du RPU variant d'un établissement
 à l'autre, la lecture des codes est à adapter au site. La racine vient du GHM du
-séjour ; la gravité de la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque mois
-d'arrivée et classe d'âge, compter par (situation, gravité, racine) ; seuil
-et catégories rares ; normaliser. Sur plusieurs années, le mois est celui de
-l'arrivée quelle que soit l'année : la table décrit la saisonnalité.
+séjour ; la gravité de la CCMU du RPU (P et D rattachées à 1 et 5). Pour chaque
+saison, mois d'arrivée et classe d'âge, compter par (situation, gravité,
+racine) ; seuil et catégories rares ; normaliser. Chaque saison est décrite
+séparément (voir les conventions).
 
 **Usage.** Un seul tirage donne la situation et sa caractérisation. La
 durée du passage (A4) est tirée ensuite sachant la situation et, pour les

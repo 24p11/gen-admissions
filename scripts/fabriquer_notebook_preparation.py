@@ -43,6 +43,8 @@ configurer(
     bornes_age_duree=(59,),             # 0-59, 60+
     bornes_tranches_h=(1, 2, 4, 6, 12, 24),
     colonnes_site=(),                   # ("hopital",) pour calculer toutes les tables par site : la colonne doit être dans les requêtes
+    colonnes_saison=("saison",),        # saison épidémiologique (sept-août) dans les tables saisonnières ; v["saison"] = saison(v["date_entree"])
+    mois_debut_saison=9,
     # les listes suivantes sont aussi modifiables : situations_sans_sejour, situations_avec_sejour,
     # colonnes_venues, blocs_passage, colonnes_contexte_passage, parts_soins_critiques
 )
