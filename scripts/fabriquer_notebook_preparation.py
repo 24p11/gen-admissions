@@ -19,19 +19,14 @@ RACINE = Path(__file__).resolve().parents[1]
 SOURCE = RACINE / "parametres" / "DICTIONNAIRE.md"
 SORTIE = RACINE / "notebooks" / "preparation_parametres.ipynb"
 
-CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/preparation_parametres.py :
-# normaliser, attribuer_rang, table_proportions, additionner, services_vers_yaml,
-# situation_venue, gravite_ccmu, effectifs_venues, venues_depuis_effectifs,
-# premier_service_depuis_effectifs, etapes_sejours, effectifs_passage, passages_specialite, durees_passage_depuis_passages,
-# table_passage_depuis_effectifs, soins_critiques_depuis_effectifs, verifier_table,
-# et les réglages SEUIL_EFFECTIF, PART_MIN_SERVICE_HABITUEL, CLASSES_AGE, CLASSES_AGE_DUREE, TRANCHES_H.
+CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/preparation_parametres.py.
 # Le plus simple est d'installer le dépôt une fois pour toutes (depuis sa racine) : pip install -e .
 # À défaut, on retrouve la racine du dépôt en remontant depuis le dossier courant.
 import sys
 from pathlib import Path
 
 try:
-    import gen_admissions  # déjà installé (pip install -e .)
+    import gen_admissions
 except ModuleNotFoundError:
     racine = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "gen_admissions").is_dir())
     sys.path.insert(0, str(racine))
@@ -39,6 +34,16 @@ from gen_admissions.preparation_parametres import *
 
 import pandas as pd
 import numpy as np
+
+# Réglages : les valeurs ci-dessous remplacent celles du module pour toute la session.
+configurer(
+    seuil_effectif=100,                 # séjours, sur la période d'observation
+    part_min_service_habituel=0.10,     # part à partir de laquelle un service est de rang 1
+    bornes_age=(17, 64, 74),            # 0-17, 18-64, 65-74, 75+
+    bornes_age_duree=(59,),             # 0-59, 60+
+    bornes_tranches_h=(1, 2, 4, 6, 12, 24),
+)
+print(REGLAGES)
 
 DOSSIER_SORTIE = "parametres/mon_etablissement"   # où écrire les fichiers de proportions
 DOSSIER_TRAVAIL = "travail"                        # effectifs intermédiaires par année (non diffusés)

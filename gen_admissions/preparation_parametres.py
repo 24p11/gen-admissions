@@ -26,32 +26,84 @@ import yaml
 # ---------------------------------------------------------------------------
 # Réglages communs
 # ---------------------------------------------------------------------------
+#
+# Les réglages vivent dans l'objet REGLAGES. Les fonctions les lisent au moment
+# de l'appel, jamais à l'import : on peut donc les changer depuis un notebook
+# avec configurer(...), sans toucher à ce fichier.
 
-SEUIL_EFFECTIF = 100               # séjours, sur la période d'observation (5 ans)
-PART_MIN_SERVICE_HABITUEL = 0.10   # part à partir de laquelle un service est de rang 1
+from dataclasses import dataclass, field
 
-CLASSES_AGE = ["0-17", "18-64", "65-74", "75+"]
-CLASSES_AGE_DUREE = ["0-59", "60+"]
-TRANCHES_H = ["0-1", "1-2", "2-4", "4-6", "6-12", "12-24", "24+"]
-_BORNES_TRANCHES_H = [0, 1, 2, 4, 6, 12, 24, np.inf]
+
+@dataclass
+class Reglages:
+    seuil_effectif: int = 100               # séjours, sur la période d'observation (5 ans)
+    part_min_service_habituel: float = 0.10 # part à partir de laquelle un service est de rang 1
+    bornes_age: tuple = (17, 64, 74)        # âges révolus de fin des trois premières classes
+    bornes_age_duree: tuple = (59,)         # idem pour les tables par GHM complet
+    bornes_tranches_h: tuple = (1, 2, 4, 6, 12, 24)  # bornes des tranches horaires
+
+    @property
+    def classes_age(self) -> list[str]:
+        return _libelles_classes(self.bornes_age)
+
+    @property
+    def classes_age_duree(self) -> list[str]:
+        return _libelles_classes(self.bornes_age_duree)
+
+    @property
+    def tranches_h(self) -> list[str]:
+        return _libelles_classes(self.bornes_tranches_h, premier=0, entier=False)
+
+
+def _libelles_classes(bornes: tuple, premier: int = 0, entier: bool = True) -> list[str]:
+    """Libellés « a-b » à partir des bornes : (17, 64, 74) → 0-17, 18-64, 65-74, 75+."""
+    libelles, debut = [], premier
+    for b in bornes:
+        libelles.append(f"{debut}-{b}")
+        debut = b + 1 if entier else b
+    return libelles + [f"{debut}+"]
+
+
+REGLAGES = Reglages()
+
+
+def configurer(**valeurs) -> Reglages:
+    """Modifie les réglages depuis un notebook : configurer(seuil_effectif=50).
+
+    Renvoie l'objet REGLAGES, pour vérification. Un nom inconnu est refusé.
+    """
+    for nom, valeur in valeurs.items():
+        if not hasattr(REGLAGES, nom):
+            raise ValueError(f"réglage inconnu : {nom} (connus : {', '.join(vars(REGLAGES))})")
+        setattr(REGLAGES, nom, valeur)
+    return REGLAGES
+
 
 SANS_SEJOUR = ["consultation", "transfert", "deces", "parti"]
 AVEC_SEJOUR = ["hospitalisation", "mono_uhcd"]
 
 
+def _classe(valeur: float, bornes: tuple, libelles: list[str]) -> str:
+    for b, lib in zip(bornes, libelles):
+        if valeur <= b:
+            return lib
+    return libelles[-1]
+
+
 def classe_age(age: float) -> str:
     """Classe d'âge commune (âge révolu)."""
-    return "0-17" if age <= 17 else "18-64" if age <= 64 else "65-74" if age <= 74 else "75+"
+    return _classe(age, REGLAGES.bornes_age, REGLAGES.classes_age)
 
 
 def classe_age_duree(age: float) -> str:
     """Classe d'âge des tables par GHM complet."""
-    return "0-59" if age <= 59 else "60+"
+    return _classe(age, REGLAGES.bornes_age_duree, REGLAGES.classes_age_duree)
 
 
 def tranche_heures(duree_h: pd.Series) -> pd.Series:
     """Tranche horaire d'une durée en heures (borne basse incluse)."""
-    return pd.cut(duree_h, bins=_BORNES_TRANCHES_H, labels=TRANCHES_H, right=False, include_lowest=True).astype(str)
+    bornes = [0, *REGLAGES.bornes_tranches_h, np.inf]
+    return pd.cut(duree_h, bins=bornes, labels=REGLAGES.tranches_h, right=False, include_lowest=True).astype(str)
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +111,7 @@ def tranche_heures(duree_h: pd.Series) -> pd.Series:
 # ---------------------------------------------------------------------------
 
 def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif: str = "n",
-               seuil: int = SEUIL_EFFECTIF) -> pd.DataFrame:
+               seuil: int | None = None) -> pd.DataFrame:
     """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
 
     Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
@@ -68,8 +120,9 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif:
     transmise. Renvoie les colonnes du bloc, les colonnes de catégorie,
     ``part`` et ``observe`` (True si la ligne était au-dessus du seuil).
     ``observe`` sert au calcul du rang et ne doit pas être écrite dans les
-    fichiers.
+    fichiers. ``seuil`` : par défaut REGLAGES.seuil_effectif.
     """
+    seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     df = df.copy()
     colonnes_bloc = list(colonnes_bloc)
     cles = [df[c] for c in colonnes_bloc]
@@ -82,7 +135,7 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif:
     return df.drop(columns=[colonne_effectif]).round({"part": 6})
 
 
-def attribuer_rang(t: pd.DataFrame, part_min: float = PART_MIN_SERVICE_HABITUEL,
+def attribuer_rang(t: pd.DataFrame, part_min: float | None = None,
                    masque: pd.Series | None = None) -> pd.Series:
     """Rang des services : 1 habituel (part >= part_min), 2 exceptionnel (observé
     mais sous part_min), 3 complété par la règle des catégories rares.
@@ -90,6 +143,7 @@ def attribuer_rang(t: pd.DataFrame, part_min: float = PART_MIN_SERVICE_HABITUEL,
     ``masque`` : lignes auxquelles le rang s'applique (les autres reçoivent une
     case vide), par exemple les suites qui sont des services et non « sortie ».
     """
+    part_min = REGLAGES.part_min_service_habituel if part_min is None else part_min
     if masque is None:
         masque = pd.Series(True, index=t.index)
     rang = np.select([~masque, ~t["observe"], t["part"] >= part_min], [np.nan, 3, 1], default=2)
@@ -99,7 +153,7 @@ def attribuer_rang(t: pd.DataFrame, part_min: float = PART_MIN_SERVICE_HABITUEL,
 def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
                       colonnes_categorie: Sequence[str],
                       replis: Iterable[Sequence[str]] = (),
-                      seuil: int = SEUIL_EFFECTIF) -> pd.DataFrame:
+                      seuil: int | None = None) -> pd.DataFrame:
     """Table de proportions avec ses lignes de repli.
 
     ``colonnes_bloc`` : contexte du niveau le plus fin ; ``colonnes_categorie`` :
@@ -317,10 +371,12 @@ def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
     return p[["specialite", "mode_entree", "classe_age", "duree_j"]].reset_index(drop=True)
 
 
-def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int = SEUIL_EFFECTIF) -> pd.DataFrame:
+def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None) -> pd.DataFrame:
     """durees_passage.csv : médiane, quartiles et moyenne par spécialité × mode
     d'entrée × classe d'âge (blocs d'au moins ``seuil`` passages), plus le
     repli par spécialité seule."""
+    seuil = REGLAGES.seuil_effectif if seuil is None else seuil
+
     def resume(bloc: list[str]) -> pd.DataFrame:
         g = passages.groupby(bloc)["duree_j"]
         t = g.agg(n="size", mediane_j="median", moyenne_j="mean",
@@ -341,13 +397,14 @@ PARTS_SOINS_CRITIQUES = ["part_rea", "part_usi", "part_usc"]
 
 
 def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racine: pd.DataFrame,
-                                     seuil: int = SEUIL_EFFECTIF) -> pd.DataFrame:
+                                     seuil: int | None = None) -> pd.DataFrame:
     """soins_critiques_ghm.csv avec le repli appliqué à la fabrication.
 
     ``fin`` : (ghm, classe_age_duree, n, part_rea, part_usi, part_usc) ;
     ``ghm`` : idem par GHM seul ; ``racine`` : (racine_ghm, part_*). Une case
     sous le seuil prend les parts du GHM seul, puis de la racine.
     """
+    seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     t = fin.merge(ghm[["ghm", "n"] + PARTS_SOINS_CRITIQUES], on="ghm", suffixes=("", "_ghm"))
     for p in PARTS_SOINS_CRITIQUES:
         t[p] = t[p].where(t["n"] >= seuil, t[p + "_ghm"])
