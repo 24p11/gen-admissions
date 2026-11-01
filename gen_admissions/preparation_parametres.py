@@ -363,6 +363,8 @@ def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
     ``classe_age``.
     """
     df = rum.sort_values(["id_sejour", "rang"]).reset_index(drop=True)
+    for c in ("date_entree", "date_sortie"):          # dates sans heure ou en texte selon le pilote : on force le type
+        df[c] = pd.to_datetime(df[c])
     nouveau = ~(df["id_sejour"].eq(df["id_sejour"].shift()) & df["specialite"].eq(df["specialite"].shift()))
     df["id_passage"] = nouveau.cumsum()
     premieres = {c: (c, "first") for c in avec_site(["specialite", "mode_entree", "classe_age"])}
