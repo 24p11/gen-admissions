@@ -353,6 +353,33 @@ def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Profil des patients des urgences (profil_patients_urgences.csv)
+# ---------------------------------------------------------------------------
+
+def sexe_mf(sexe: pd.Series) -> pd.Series:
+    """Sexe en 'M' / 'F' quels que soient les codes (1/2, M/F, H/F) ; inconnu → ''."""
+    s = sexe.astype(str).str.strip().str.upper().replace({"1": "M", "2": "F", "H": "M"})
+    return s.where(s.isin(["M", "F"]), "")
+
+
+def effectifs_patients_urgences(v: pd.DataFrame) -> pd.DataFrame:
+    """Effectifs des venues par classe d'âge × sexe (sexe inconnu écarté).
+    Colonnes attendues : ``classe_age``, ``sexe``."""
+    t = v.assign(sexe=sexe_mf(v["sexe"]))
+    t = t[t["sexe"] != ""]
+    return t.groupby(avec_site(["classe_age", "sexe"])).size().reset_index(name="n")
+
+
+def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+    """profil_patients_urgences.csv : parts qui somment à 1 sur l'ensemble (par site)."""
+    t = effectifs.copy()
+    cles = avec_site([])
+    total = t.groupby(cles)["n"].transform("sum") if cles else t["n"].sum()
+    t["part"] = (t["n"] / total).round(6)
+    return t.drop(columns="n").sort_values(avec_site(["classe_age", "sexe"])).reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
 # Premier service par racine (premier_service_racine.csv)
 # ---------------------------------------------------------------------------
 
