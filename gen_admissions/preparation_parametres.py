@@ -380,6 +380,30 @@ def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Gravité CCMU des hospitalisés (gravite_urgences.csv)
+# ---------------------------------------------------------------------------
+
+def effectifs_gravite(v: pd.DataFrame) -> pd.DataFrame:
+    """Effectifs des venues hospitalisées par classe d'âge × situation × tranche
+    de durée × gravité (CCMU inconnue écartée). Colonnes attendues :
+    ``classe_age``, ``ccmu``, ``date_entree``, ``date_sortie`` et celles de
+    ``situation_venue``."""
+    t = v.assign(situation=situation_venue(v))
+    t = t[t["situation"].isin(REGLAGES.situations_avec_sejour)].copy()
+    t["gravite"] = gravite_ccmu(t["ccmu"])
+    t = t[t["gravite"] != ""]
+    duree_h = (pd.to_datetime(t["date_sortie"]) - pd.to_datetime(t["date_entree"])).dt.total_seconds() / 3600
+    t["tranche_h"] = tranche_heures(duree_h)
+    return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"])).size().reset_index(name="n")
+
+
+def gravite_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+    """gravite_urgences.csv : bloc classe_age × situation × tranche_h, repli classe_age × situation."""
+    return table_proportions(effectifs, ["classe_age", "situation", "tranche_h"], ["gravite"],
+                             replis=[["classe_age", "situation"]])
+
+
+# ---------------------------------------------------------------------------
 # Premier service par racine (premier_service_racine.csv)
 # ---------------------------------------------------------------------------
 
