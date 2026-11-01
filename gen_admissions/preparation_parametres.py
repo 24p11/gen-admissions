@@ -379,8 +379,9 @@ def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = N
 
     def resume(bloc: list[str]) -> pd.DataFrame:
         g = passages.groupby(avec_site(bloc))["duree_j"]
-        t = g.agg(n="size", mediane_j="median", moyenne_j="mean",
-                  q1_j=lambda x: x.quantile(0.25), q3_j=lambda x: x.quantile(0.75)).reset_index()
+        q = g.quantile([0.25, 0.5, 0.75]).unstack()      # vectoriel : tous les blocs d'un coup
+        q.columns = ["q1_j", "mediane_j", "q3_j"]
+        t = pd.concat([g.size().rename("n"), g.mean().rename("moyenne_j"), q], axis=1).reset_index()
         return t[t["n"] >= seuil].drop(columns="n")
     fin = resume(["specialite", "mode_entree", "classe_age"])
     repli = resume(["specialite"])
