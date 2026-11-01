@@ -42,6 +42,9 @@ configurer(
     bornes_age=(17, 64, 74),            # 0-17, 18-64, 65-74, 75+
     bornes_age_duree=(59,),             # 0-59, 60+
     bornes_tranches_h=(1, 2, 4, 6, 12, 24),
+    colonnes_site=(),                   # ("hopital",) pour calculer toutes les tables par site : la colonne doit être dans les requêtes
+    # les listes suivantes sont aussi modifiables : situations_sans_sejour, situations_avec_sejour,
+    # colonnes_venues, blocs_passage, colonnes_contexte_passage, parts_soins_critiques
 )
 print(REGLAGES)
 
