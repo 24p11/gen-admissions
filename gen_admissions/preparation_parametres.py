@@ -286,6 +286,38 @@ def venues_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Profils (profil_arrivees_urgences.csv, profil_entrees_programmees.csv, profil_sorties.csv…)
+# ---------------------------------------------------------------------------
+
+def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series]) -> pd.DataFrame:
+    """Effectifs par dimension : une ligne par (dimension, valeur), avec ``n``.
+
+    ``dimensions`` : nom → série de valeurs alignée sur ``df`` (par exemple
+    {"heure": d.dt.hour, "mois": d.dt.month}).
+    """
+    morceaux = []
+    for dimension, valeur in dimensions.items():
+        t = df.assign(dimension=dimension, valeur=np.asarray(valeur))
+        morceaux.append(t.groupby(avec_site(["dimension", "valeur"])).size().reset_index(name="n"))
+    return pd.concat(morceaux, ignore_index=True)
+
+
+def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
+    """Effectifs des arrivées aux urgences par heure, jour de la semaine
+    (1 = lundi … 7 = dimanche) et mois. Colonne attendue : ``date_entree``."""
+    d = pd.to_datetime(v["date_entree"])
+    return effectifs_profil(v, {"heure": d.dt.hour, "jour_semaine": d.dt.dayofweek + 1, "mois": d.dt.month})
+
+
+def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+    """Parts par dimension (elles somment à 1 dans chaque dimension), sans seuil."""
+    cles = avec_site(["dimension"])
+    t = effectifs.copy()
+    t["part"] = (t["n"] / t.groupby(cles)["n"].transform("sum")).round(6)
+    return t.drop(columns="n").sort_values(cles + ["valeur"]).reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
 # Premier service par racine (premier_service_racine.csv)
 # ---------------------------------------------------------------------------
 

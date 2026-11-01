@@ -19,7 +19,7 @@ RACINE = Path(__file__).resolve().parents[1]
 SOURCE = RACINE / "parametres" / "DICTIONNAIRE.md"
 SORTIE = RACINE / "notebooks" / "preparation_parametres.ipynb"
 
-CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/preparation_parametres.py.
+CELLULE_REGLAGES = '''# Les fonctions mises au point dans le carnet de bord sont dans gen_admissions/preparation_parametres.py\n# (normaliser, attribuer_rang, table_proportions, additionner, effectifs_venues, effectifs_arrivees,\n#  profil_depuis_effectifs, etapes_sejours, passages_specialite, premier_service_depuis_effectifs…).
 # Le plus simple est d'installer le dépôt une fois pour toutes (depuis sa racine) : pip install -e .
 # À défaut, on retrouve la racine du dépôt en remontant depuis le dossier courant.
 import sys
