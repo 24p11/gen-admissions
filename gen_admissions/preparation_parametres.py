@@ -91,9 +91,27 @@ def configurer(**valeurs) -> Reglages:
     return REGLAGES
 
 
-def avec_site(colonnes: Sequence[str]) -> list[str]:
-    """Colonnes de bloc complétées par les colonnes de site (REGLAGES.colonnes_site)."""
-    return [*REGLAGES.colonnes_site, *colonnes]
+_avertis: set = set()
+
+
+def avec_site(colonnes: Sequence[str], df: pd.DataFrame | None = None, site: bool = True) -> list[str]:
+    """Colonnes de bloc complétées par les colonnes de site (REGLAGES.colonnes_site).
+
+    Avec ``df``, seules les colonnes de site présentes dans ``df`` sont ajoutées ;
+    une colonne configurée mais absente est signalée une fois (calcul sans site).
+    ``site=False`` désactive l'ajout sans avertissement.
+    """
+    if not site:
+        return list(colonnes)
+    cols_site = list(REGLAGES.colonnes_site)
+    if df is not None:
+        presentes = [c for c in cols_site if c in df.columns]
+        for c in cols_site:
+            if c not in df.columns and c not in _avertis:
+                _avertis.add(c)
+                print(f"avertissement : calcul sans site, colonne {c} absente du tableau")
+        cols_site = presentes
+    return [*cols_site, *colonnes]
 
 
 def avec_saison(colonnes: Sequence[str]) -> list[str]:
@@ -143,7 +161,7 @@ def tranche_heures(duree_h: pd.Series) -> pd.Series:
 # ---------------------------------------------------------------------------
 
 def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif: str = "n",
-               seuil: int | None = None) -> pd.DataFrame:
+               seuil: int | None = None, site: bool = True) -> pd.DataFrame:
     """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
 
     Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
@@ -152,11 +170,12 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif:
     transmise. Renvoie les colonnes du bloc, les colonnes de catégorie,
     ``part`` et ``observe`` (True si la ligne était au-dessus du seuil).
     ``observe`` sert au calcul du rang et ne doit pas être écrite dans les
-    fichiers. ``seuil`` : par défaut REGLAGES.seuil_effectif.
+    fichiers. ``seuil`` : par défaut REGLAGES.seuil_effectif. Les colonnes de
+    site ne sont ajoutées que si ``df`` les contient (``site=False`` : jamais).
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     df = df.copy()
-    colonnes_bloc = avec_site(colonnes_bloc)
+    colonnes_bloc = avec_site(colonnes_bloc, df, site)
     cles = [df[c] for c in colonnes_bloc]
     total = df.groupby(cles)[colonne_effectif].transform("sum")
     rare = df[colonne_effectif] < seuil
@@ -185,7 +204,7 @@ def attribuer_rang(t: pd.DataFrame, part_min: float | None = None,
 def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
                       colonnes_categorie: Sequence[str],
                       replis: Iterable[Sequence[str]] = (),
-                      seuil: int | None = None) -> pd.DataFrame:
+                      seuil: int | None = None, site: bool = True) -> pd.DataFrame:
     """Table de proportions avec ses lignes de repli.
 
     ``colonnes_bloc`` : contexte du niveau le plus fin ; ``colonnes_categorie`` :
@@ -195,21 +214,21 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
     sont laissées vides. Renvoie les colonnes du bloc, les catégories et
     ``part`` (sans ``observe``).
     """
-    colonnes_bloc = avec_site(colonnes_bloc)
+    colonnes_bloc = avec_site(colonnes_bloc, effectifs, site)
     colonnes_categorie = list(colonnes_categorie)
-    morceaux = [normaliser(effectifs, colonnes_bloc, seuil=seuil)]
+    morceaux = [normaliser(effectifs, colonnes_bloc, seuil=seuil, site=False)]
     for sous_bloc in replis:
-        sous_bloc = avec_site(sous_bloc)
+        sous_bloc = avec_site(sous_bloc, effectifs, site)
         eff = effectifs.groupby(sous_bloc + colonnes_categorie, as_index=False)["n"].sum()
-        morceaux.append(normaliser(eff, sous_bloc, seuil=seuil))
+        morceaux.append(normaliser(eff, sous_bloc, seuil=seuil, site=False))
     colonnes = colonnes_bloc + colonnes_categorie + ["part"]
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({c: "" for c in colonnes_bloc})
 
 
 def additionner(effectifs_par_annee: Iterable[pd.DataFrame], colonnes: Sequence[str]) -> pd.DataFrame:
     """Somme des effectifs de plusieurs années (mêmes colonnes de contexte + ``n``)."""
-    return (pd.concat(list(effectifs_par_annee), ignore_index=True)
-            .groupby(avec_site(colonnes), as_index=False)["n"].sum())
+    tout = pd.concat(list(effectifs_par_annee), ignore_index=True)
+    return tout.groupby(avec_site(colonnes, tout), as_index=False)["n"].sum()
 
 
 # ---------------------------------------------------------------------------
@@ -298,7 +317,7 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     v["gravite"] = np.where(avec_sejour, "", gravite_ccmu(v["ccmu"]))
     v["racine_ghm"] = np.where(avec_sejour, v["ghm"].astype(str).str[:5], "")
     v = v[~(avec_sejour & v["ghm"].isna())]
-    return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues))).size().reset_index(name="n")
+    return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues), v)).size().reset_index(name="n")
 
 
 def venues_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
@@ -320,7 +339,7 @@ def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series]) -> pd.D
     morceaux = []
     for dimension, valeur in dimensions.items():
         t = df.assign(dimension=dimension, valeur=np.asarray(valeur))
-        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"]))).size().reset_index(name="n"))
+        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"]), t)).size().reset_index(name="n"))
     return pd.concat(morceaux, ignore_index=True)
 
 
@@ -332,21 +351,22 @@ def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
     (jour de la semaine × heure, 1 = lundi … 7 = dimanche) et ``mois``.
     Colonne attendue : ``date_entree`` (date et heure)."""
     d = pd.to_datetime(v["date_entree"])
-    base = v[avec_site(avec_saison([]))].copy()
+    contexte = avec_site(avec_saison([]), v)
+    base = v[contexte].copy()
     semaine = base.assign(dimension="semaine", jour_semaine=(d.dt.dayofweek + 1).values, heure=d.dt.hour.values)
     mois = base.assign(dimension="mois", mois=d.dt.month.values)
     morceaux = [
-        semaine.groupby(avec_site(avec_saison(["dimension", "jour_semaine", "heure"]))).size().reset_index(name="n"),
-        mois.groupby(avec_site(avec_saison(["dimension", "mois"]))).size().reset_index(name="n"),
+        semaine.groupby(contexte + ["dimension", "jour_semaine", "heure"]).size().reset_index(name="n"),
+        mois.groupby(contexte + ["dimension", "mois"]).size().reset_index(name="n"),
     ]
     return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=avec_site(avec_saison(COLONNES_PROFIL_ARRIVEES)) + ["n"]).fillna(""))
+            .reindex(columns=contexte + COLONNES_PROFIL_ARRIVEES + ["n"]).fillna(""))
 
 
 def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
     """Parts par dimension (elles somment à 1 dans chaque dimension), sans seuil."""
-    cles = avec_site(avec_saison(["dimension"]))
     t = effectifs.copy()
+    cles = avec_site(avec_saison(["dimension"]), t)
     t["part"] = (t["n"] / t.groupby(cles)["n"].transform("sum")).round(6)
     tri = cles + [c for c in ("valeur", "jour_semaine", "heure", "mois") if c in t.columns]
     return t.drop(columns="n").sort_values(tri).reset_index(drop=True)
@@ -367,16 +387,16 @@ def effectifs_patients_urgences(v: pd.DataFrame) -> pd.DataFrame:
     Colonnes attendues : ``classe_age``, ``sexe``."""
     t = v.assign(sexe=sexe_mf(v["sexe"]))
     t = t[t["sexe"] != ""]
-    return t.groupby(avec_site(["classe_age", "sexe"])).size().reset_index(name="n")
+    return t.groupby(avec_site(["classe_age", "sexe"], t)).size().reset_index(name="n")
 
 
 def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
     """profil_patients_urgences.csv : parts qui somment à 1 sur l'ensemble (par site)."""
     t = effectifs.copy()
-    cles = avec_site([])
+    cles = avec_site([], t)
     total = t.groupby(cles)["n"].transform("sum") if cles else t["n"].sum()
     t["part"] = (t["n"] / total).round(6)
-    return t.drop(columns="n").sort_values(avec_site(["classe_age", "sexe"])).reset_index(drop=True)
+    return t.drop(columns="n").sort_values(cles + ["classe_age", "sexe"]).reset_index(drop=True)
 
 
 # ---------------------------------------------------------------------------
@@ -394,7 +414,7 @@ def effectifs_gravite(v: pd.DataFrame) -> pd.DataFrame:
     t = t[t["gravite"] != ""]
     duree_h = (pd.to_datetime(t["date_sortie"]) - pd.to_datetime(t["date_entree"])).dt.total_seconds() / 3600
     t["tranche_h"] = tranche_heures(duree_h)
-    return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"])).size().reset_index(name="n")
+    return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"], t)).size().reset_index(name="n")
 
 
 def gravite_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
@@ -412,12 +432,12 @@ def premier_service_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
     specialite, n) : parts, rang, et lignes de repli par racine seule."""
     morceaux = []
     for bloc in (["racine_ghm", "classe_age"], ["racine_ghm"]):
-        bloc = avec_site(bloc)
+        bloc = avec_site(bloc, effectifs)
         eff = effectifs.groupby(bloc + ["specialite"], as_index=False)["n"].sum()
-        t = normaliser(eff, bloc)
+        t = normaliser(eff, bloc, site=False)
         t["rang"] = attribuer_rang(t)
         morceaux.append(t)
-    colonnes = avec_site(["racine_ghm", "classe_age", "specialite", "part", "rang"])
+    colonnes = avec_site(["racine_ghm", "classe_age", "specialite", "part", "rang"], effectifs)
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({"classe_age": ""})
 
 
@@ -442,18 +462,18 @@ def etapes_sejours(rum: pd.DataFrame) -> pd.DataFrame:
     df["precedent"] = df["specialite"].shift(1).where(avant, "AUCUN")
     df["suite"] = df["specialite"].shift(-1).where(apres, "sortie")
     return df.rename(columns={"specialite": "service"})[
-        avec_site(["id_sejour", "service", "precedent", "classe_age", "mode_entree", "suite"])]
+        avec_site(["id_sejour", "service", "precedent", "classe_age", "mode_entree", "suite"], df)]
 
 
 def effectifs_passage(etapes: pd.DataFrame) -> pd.DataFrame:
     """Compte les transitions aux deux niveaux. Colonnes : contexte + ``n``."""
     morceaux = []
     for niveau, colonnes in REGLAGES.blocs_passage.items():
-        n = etapes.groupby(avec_site(colonnes) + ["suite"]).size().reset_index(name="n")
+        n = etapes.groupby(avec_site(colonnes, etapes) + ["suite"]).size().reset_index(name="n")
         n["niveau"] = niveau
         morceaux.append(n)
     return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage) + ["n"]).fillna(""))
+            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, etapes) + ["n"]).fillna(""))
 
 
 def table_passage_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
@@ -465,7 +485,7 @@ def table_passage_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
         t["rang"] = attribuer_rang(t, masque=t["suite"].ne("sortie"))
         morceaux.append(t)
     return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage) + ["part", "rang"]))
+            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, effectifs) + ["part", "rang"]))
 
 
 # ---------------------------------------------------------------------------
@@ -485,10 +505,10 @@ def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
         df[c] = pd.to_datetime(df[c])
     nouveau = ~(df["id_sejour"].eq(df["id_sejour"].shift()) & df["specialite"].eq(df["specialite"].shift()))
     df["id_passage"] = nouveau.cumsum()
-    premieres = {c: (c, "first") for c in avec_site(["specialite", "mode_entree", "classe_age"])}
+    premieres = {c: (c, "first") for c in avec_site(["specialite", "mode_entree", "classe_age"], df)}
     p = df.groupby("id_passage").agg(**premieres, date_entree=("date_entree", "min"), date_sortie=("date_sortie", "max"))
     p["duree_j"] = (p["date_sortie"] - p["date_entree"]).dt.total_seconds() / 86400
-    return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"])].reset_index(drop=True)
+    return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"], df)].reset_index(drop=True)
 
 
 def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None) -> pd.DataFrame:
@@ -498,14 +518,14 @@ def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = N
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
 
     def resume(bloc: list[str]) -> pd.DataFrame:
-        g = passages.groupby(avec_site(bloc))["duree_j"]
+        g = passages.groupby(avec_site(bloc, passages))["duree_j"]
         q = g.quantile([0.25, 0.5, 0.75]).unstack()      # vectoriel : tous les blocs d'un coup
         q.columns = ["q1_j", "mediane_j", "q3_j"]
         t = pd.concat([g.size().rename("n"), g.mean().rename("moyenne_j"), q], axis=1).reset_index()
         return t[t["n"] >= seuil].drop(columns="n")
     fin = resume(["specialite", "mode_entree", "classe_age"])
     repli = resume(["specialite"])
-    colonnes = avec_site(["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"])
+    colonnes = avec_site(["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"], passages)
     return (pd.concat([fin, repli], ignore_index=True).reindex(columns=colonnes)
             .fillna({"mode_entree": "", "classe_age": ""}).round(3))
 
@@ -524,7 +544,7 @@ def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racin
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     parts = list(REGLAGES.parts_soins_critiques)
-    site = list(REGLAGES.colonnes_site)
+    site = avec_site([], fin)
     t = fin.merge(ghm[site + ["ghm", "n"] + parts], on=site + ["ghm"], suffixes=("", "_ghm"))
     for p in parts:
         t[p] = t[p].where(t["n"] >= seuil, t[p + "_ghm"])
@@ -541,7 +561,7 @@ def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racin
 
 def verifier_table(t: pd.DataFrame, colonnes_bloc: Sequence[str]) -> None:
     """Vérifie qu'une table de proportions somme à 1 dans chaque bloc."""
-    sommes = t.groupby(avec_site(colonnes_bloc))["part"].sum().round(4)
+    sommes = t.groupby(avec_site(colonnes_bloc, t))["part"].sum().round(4)
     fautives = sommes[sommes != 1]
     if len(fautives):
         raise ValueError(f"{len(fautives)} blocs ne somment pas à 1 :\n{fautives.head()}")
