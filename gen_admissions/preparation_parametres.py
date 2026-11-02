@@ -320,10 +320,10 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues), v)).size().reset_index(name="n")
 
 
-def venues_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
-    """venues_urgences.csv : bloc mois × classe d'âge, repli classe d'âge seule."""
+def venues_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+    """venues_urgences.csv : bloc saison × mois × classe d'âge, repli saison × classe d'âge."""
     return table_proportions(effectifs, avec_saison(["periode", "classe_age"]), ["situation", "gravite", "racine_ghm"],
-                             replis=[avec_saison(["classe_age"])])
+                             replis=[avec_saison(["classe_age"])], seuil=seuil, site=site)
 
 
 # ---------------------------------------------------------------------------
@@ -417,27 +417,28 @@ def effectifs_gravite(v: pd.DataFrame) -> pd.DataFrame:
     return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"], t)).size().reset_index(name="n")
 
 
-def gravite_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+def gravite_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, site: bool = True) -> pd.DataFrame:
     """gravite_urgences.csv : bloc classe_age × situation × tranche_h, repli classe_age × situation."""
     return table_proportions(effectifs, ["classe_age", "situation", "tranche_h"], ["gravite"],
-                             replis=[["classe_age", "situation"]])
+                             replis=[["classe_age", "situation"]], seuil=seuil, site=site)
 
 
 # ---------------------------------------------------------------------------
 # Premier service par racine (premier_service_racine.csv)
 # ---------------------------------------------------------------------------
 
-def premier_service_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+def premier_service_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
+                                     part_min: float | None = None, site: bool = True) -> pd.DataFrame:
     """premier_service_racine.csv à partir d'effectifs (racine_ghm, classe_age,
     specialite, n) : parts, rang, et lignes de repli par racine seule."""
     morceaux = []
     for bloc in (["racine_ghm", "classe_age"], ["racine_ghm"]):
-        bloc = avec_site(bloc, effectifs)
+        bloc = avec_site(bloc, effectifs, site)
         eff = effectifs.groupby(bloc + ["specialite"], as_index=False)["n"].sum()
-        t = normaliser(eff, bloc, site=False)
-        t["rang"] = attribuer_rang(t)
+        t = normaliser(eff, bloc, seuil=seuil, site=False)
+        t["rang"] = attribuer_rang(t, part_min=part_min)
         morceaux.append(t)
-    colonnes = avec_site(["racine_ghm", "classe_age", "specialite", "part", "rang"], effectifs)
+    colonnes = avec_site(["racine_ghm", "classe_age", "specialite", "part", "rang"], effectifs, site)
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({"classe_age": ""})
 
 
@@ -476,16 +477,17 @@ def effectifs_passage(etapes: pd.DataFrame) -> pd.DataFrame:
             .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, etapes) + ["n"]).fillna(""))
 
 
-def table_passage_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+def table_passage_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
+                                   part_min: float | None = None, site: bool = True) -> pd.DataFrame:
     """table_passage.csv : normalisation par niveau et rang des suites."""
     morceaux = []
     for niveau, colonnes in REGLAGES.blocs_passage.items():
         e = effectifs[effectifs["niveau"] == niveau]
-        t = normaliser(e, colonnes)
-        t["rang"] = attribuer_rang(t, masque=t["suite"].ne("sortie"))
+        t = normaliser(e, colonnes, seuil=seuil, site=site)
+        t["rang"] = attribuer_rang(t, part_min=part_min, masque=t["suite"].ne("sortie"))
         morceaux.append(t)
     return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, effectifs) + ["part", "rang"]))
+            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, effectifs, site) + ["part", "rang"]))
 
 
 # ---------------------------------------------------------------------------
@@ -511,21 +513,21 @@ def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
     return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"], df)].reset_index(drop=True)
 
 
-def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None) -> pd.DataFrame:
+def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None, site: bool = True) -> pd.DataFrame:
     """durees_passage.csv : médiane, quartiles et moyenne par spécialité × mode
     d'entrée × classe d'âge (blocs d'au moins ``seuil`` passages), plus le
     repli par spécialité seule."""
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
 
     def resume(bloc: list[str]) -> pd.DataFrame:
-        g = passages.groupby(avec_site(bloc, passages))["duree_j"]
+        g = passages.groupby(avec_site(bloc, passages, site))["duree_j"]
         q = g.quantile([0.25, 0.5, 0.75]).unstack()      # vectoriel : tous les blocs d'un coup
         q.columns = ["q1_j", "mediane_j", "q3_j"]
         t = pd.concat([g.size().rename("n"), g.mean().rename("moyenne_j"), q], axis=1).reset_index()
         return t[t["n"] >= seuil].drop(columns="n")
     fin = resume(["specialite", "mode_entree", "classe_age"])
     repli = resume(["specialite"])
-    colonnes = avec_site(["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"], passages)
+    colonnes = avec_site(["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"], passages, site)
     return (pd.concat([fin, repli], ignore_index=True).reindex(columns=colonnes)
             .fillna({"mode_entree": "", "classe_age": ""}).round(3))
 
@@ -535,7 +537,7 @@ def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = N
 # ---------------------------------------------------------------------------
 
 def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racine: pd.DataFrame,
-                                     seuil: int | None = None) -> pd.DataFrame:
+                                     seuil: int | None = None, site: bool = True) -> pd.DataFrame:
     """soins_critiques_ghm.csv avec le repli appliqué à la fabrication.
 
     ``fin`` : (ghm, classe_age_duree, n, part_rea, part_usi, part_usc) ;
@@ -544,7 +546,7 @@ def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racin
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     parts = list(REGLAGES.parts_soins_critiques)
-    site = avec_site([], fin)
+    site = avec_site([], fin, site)
     t = fin.merge(ghm[site + ["ghm", "n"] + parts], on=site + ["ghm"], suffixes=("", "_ghm"))
     for p in parts:
         t[p] = t[p].where(t["n"] >= seuil, t[p + "_ghm"])

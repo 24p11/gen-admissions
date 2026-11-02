@@ -35,18 +35,24 @@ from gen_admissions.preparation_parametres import *
 import pandas as pd
 import numpy as np
 
-# Réglages : les valeurs ci-dessous remplacent celles du module pour toute la session.
+# Réglages de normalisation : définis ici, et passés explicitement à chaque appel, pour que chaque
+# cellule dise avec quelles valeurs elle calcule. Par exemple :
+#     sexe_racine = normaliser(df_s_rac, colonnes_bloc=["racine_ghm"], seuil=SEUIL, site=False)
+#     tp = table_passage_depuis_effectifs(effectifs, seuil=SEUIL, part_min=PART_MIN)
+SEUIL = 100                          # séjours, sur la période d'observation
+PART_MIN = 0.10                      # part à partir de laquelle un service est de rang 1
+SITE = ("nohop",)                    # colonne(s) de site ; () pour un calcul sans site
+
+# Réglages de structure (classes, saisons, listes de colonnes), lus par toutes les fonctions :
 configurer(
-    seuil_effectif=100,                 # séjours, sur la période d'observation
-    part_min_service_habituel=0.10,     # part à partir de laquelle un service est de rang 1
-    bornes_age=(17, 64, 74),            # 0-17, 18-64, 65-74, 75+
-    bornes_age_duree=(59,),             # 0-59, 60+
+    seuil_effectif=SEUIL,                # valeur par défaut si un appel ne précise pas seuil=
+    part_min_service_habituel=PART_MIN,  # idem pour part_min=
+    colonnes_site=SITE,                  # ajoutée aux blocs quand la colonne est présente dans le tableau
+    bornes_age=(17, 64, 74),             # 0-17, 18-64, 65-74, 75+
+    bornes_age_duree=(59,),              # 0-59, 60+
     bornes_tranches_h=(1, 2, 4, 6, 12, 24),
-    colonnes_site=(),                   # ("hopital",) pour calculer toutes les tables par site : la colonne doit être dans les requêtes
-    colonnes_saison=("saison",),        # saison épidémiologique (sept-août) dans les tables saisonnières ; v["saison"] = saison(v["date_entree"])
+    colonnes_saison=("saison",),         # saison épidémiologique (sept-août) dans les tables saisonnières ; v["saison"] = saison(v["date_entree"])
     mois_debut_saison=9,
-    # les listes suivantes sont aussi modifiables : situations_sans_sejour, situations_avec_sejour,
-    # colonnes_venues, blocs_passage, colonnes_contexte_passage, parts_soins_critiques
 )
 print(REGLAGES)
 
