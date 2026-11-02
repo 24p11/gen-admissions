@@ -94,23 +94,23 @@ def configurer(**valeurs) -> Reglages:
 _avertis: set = set()
 
 
-def avec_site(colonnes: Sequence[str], df: pd.DataFrame | None = None, site: bool = True) -> list[str]:
-    """Colonnes de bloc complétées par les colonnes de site (REGLAGES.colonnes_site).
+def avec_site(colonnes: Sequence[str], df: pd.DataFrame | None = None,
+              contexte: Sequence[str] | None = None) -> list[str]:
+    """Colonnes de bloc complétées, en tête, par les colonnes de contexte.
 
-    Avec ``df``, seules les colonnes de site présentes dans ``df`` sont ajoutées ;
-    une colonne configurée mais absente est signalée une fois (calcul sans site).
-    ``site=False`` désactive l'ajout sans avertissement.
+    ``contexte`` donné (par exemple ["nohop"], ou [] pour aucun) : il est pris
+    tel quel. Sinon : REGLAGES.colonnes_site, limité aux colonnes présentes dans
+    ``df`` quand il est fourni, une colonne absente étant signalée une fois.
     """
-    if not site:
-        return list(colonnes)
+    if contexte is not None:
+        return [*contexte, *colonnes]
     cols_site = list(REGLAGES.colonnes_site)
     if df is not None:
-        presentes = [c for c in cols_site if c in df.columns]
         for c in cols_site:
             if c not in df.columns and c not in _avertis:
                 _avertis.add(c)
                 print(f"avertissement : calcul sans site, colonne {c} absente du tableau")
-        cols_site = presentes
+        cols_site = [c for c in cols_site if c in df.columns]
     return [*cols_site, *colonnes]
 
 
@@ -161,7 +161,7 @@ def tranche_heures(duree_h: pd.Series) -> pd.Series:
 # ---------------------------------------------------------------------------
 
 def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif: str = "n",
-               seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+               seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
 
     Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
@@ -171,11 +171,12 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif:
     ``part`` et ``observe`` (True si la ligne était au-dessus du seuil).
     ``observe`` sert au calcul du rang et ne doit pas être écrite dans les
     fichiers. ``seuil`` : par défaut REGLAGES.seuil_effectif. Les colonnes de
-    site ne sont ajoutées que si ``df`` les contient (``site=False`` : jamais).
+    contexte sont prises telles quelles si ``contexte`` est donné ([] : aucune),
+    sinon celles de REGLAGES présentes dans ``df``.
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     df = df.copy()
-    colonnes_bloc = avec_site(colonnes_bloc, df, site)
+    colonnes_bloc = avec_site(colonnes_bloc, df, contexte)
     cles = [df[c] for c in colonnes_bloc]
     total = df.groupby(cles)[colonne_effectif].transform("sum")
     rare = df[colonne_effectif] < seuil
@@ -204,7 +205,7 @@ def attribuer_rang(t: pd.DataFrame, part_min: float | None = None,
 def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
                       colonnes_categorie: Sequence[str],
                       replis: Iterable[Sequence[str]] = (),
-                      seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+                      seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Table de proportions avec ses lignes de repli.
 
     ``colonnes_bloc`` : contexte du niveau le plus fin ; ``colonnes_categorie`` :
@@ -214,13 +215,13 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
     sont laissées vides. Renvoie les colonnes du bloc, les catégories et
     ``part`` (sans ``observe``).
     """
-    colonnes_bloc = avec_site(colonnes_bloc, effectifs, site)
+    colonnes_bloc = avec_site(colonnes_bloc, effectifs, contexte)
     colonnes_categorie = list(colonnes_categorie)
-    morceaux = [normaliser(effectifs, colonnes_bloc, seuil=seuil, site=False)]
+    morceaux = [normaliser(effectifs, colonnes_bloc, seuil=seuil, contexte=[])]
     for sous_bloc in replis:
-        sous_bloc = avec_site(sous_bloc, effectifs, site)
+        sous_bloc = avec_site(sous_bloc, effectifs, contexte)
         eff = effectifs.groupby(sous_bloc + colonnes_categorie, as_index=False)["n"].sum()
-        morceaux.append(normaliser(eff, sous_bloc, seuil=seuil, site=False))
+        morceaux.append(normaliser(eff, sous_bloc, seuil=seuil, contexte=[]))
     colonnes = colonnes_bloc + colonnes_categorie + ["part"]
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({c: "" for c in colonnes_bloc})
 
@@ -320,10 +321,10 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues), v)).size().reset_index(name="n")
 
 
-def venues_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+def venues_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """venues_urgences.csv : bloc saison × mois × classe d'âge, repli saison × classe d'âge."""
     return table_proportions(effectifs, avec_saison(["periode", "classe_age"]), ["situation", "gravite", "racine_ghm"],
-                             replis=[avec_saison(["classe_age"])], seuil=seuil, site=site)
+                             replis=[avec_saison(["classe_age"])], seuil=seuil, contexte=contexte)
 
 
 # ---------------------------------------------------------------------------
@@ -417,10 +418,10 @@ def effectifs_gravite(v: pd.DataFrame) -> pd.DataFrame:
     return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"], t)).size().reset_index(name="n")
 
 
-def gravite_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+def gravite_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """gravite_urgences.csv : bloc classe_age × situation × tranche_h, repli classe_age × situation."""
     return table_proportions(effectifs, ["classe_age", "situation", "tranche_h"], ["gravite"],
-                             replis=[["classe_age", "situation"]], seuil=seuil, site=site)
+                             replis=[["classe_age", "situation"]], seuil=seuil, contexte=contexte)
 
 
 # ---------------------------------------------------------------------------
@@ -428,17 +429,17 @@ def gravite_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, 
 # ---------------------------------------------------------------------------
 
 def premier_service_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
-                                     part_min: float | None = None, site: bool = True) -> pd.DataFrame:
+                                     part_min: float | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """premier_service_racine.csv à partir d'effectifs (racine_ghm, classe_age,
     specialite, n) : parts, rang, et lignes de repli par racine seule."""
     morceaux = []
     for bloc in (["racine_ghm", "classe_age"], ["racine_ghm"]):
-        bloc = avec_site(bloc, effectifs, site)
+        bloc = avec_site(bloc, effectifs, contexte)
         eff = effectifs.groupby(bloc + ["specialite"], as_index=False)["n"].sum()
-        t = normaliser(eff, bloc, seuil=seuil, site=False)
+        t = normaliser(eff, bloc, seuil=seuil, contexte=[])
         t["rang"] = attribuer_rang(t, part_min=part_min)
         morceaux.append(t)
-    colonnes = avec_site(["racine_ghm", "classe_age", "specialite", "part", "rang"], effectifs, site)
+    colonnes = avec_site(["racine_ghm", "classe_age", "specialite", "part", "rang"], effectifs, contexte)
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({"classe_age": ""})
 
 
@@ -478,16 +479,16 @@ def effectifs_passage(etapes: pd.DataFrame) -> pd.DataFrame:
 
 
 def table_passage_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
-                                   part_min: float | None = None, site: bool = True) -> pd.DataFrame:
+                                   part_min: float | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """table_passage.csv : normalisation par niveau et rang des suites."""
     morceaux = []
     for niveau, colonnes in REGLAGES.blocs_passage.items():
         e = effectifs[effectifs["niveau"] == niveau]
-        t = normaliser(e, colonnes, seuil=seuil, site=site)
+        t = normaliser(e, colonnes, seuil=seuil, contexte=contexte)
         t["rang"] = attribuer_rang(t, part_min=part_min, masque=t["suite"].ne("sortie"))
         morceaux.append(t)
     return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, effectifs, site) + ["part", "rang"]))
+            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, effectifs, contexte) + ["part", "rang"]))
 
 
 # ---------------------------------------------------------------------------
@@ -513,21 +514,21 @@ def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
     return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"], df)].reset_index(drop=True)
 
 
-def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """durees_passage.csv : médiane, quartiles et moyenne par spécialité × mode
     d'entrée × classe d'âge (blocs d'au moins ``seuil`` passages), plus le
     repli par spécialité seule."""
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
 
     def resume(bloc: list[str]) -> pd.DataFrame:
-        g = passages.groupby(avec_site(bloc, passages, site))["duree_j"]
+        g = passages.groupby(avec_site(bloc, passages, contexte))["duree_j"]
         q = g.quantile([0.25, 0.5, 0.75]).unstack()      # vectoriel : tous les blocs d'un coup
         q.columns = ["q1_j", "mediane_j", "q3_j"]
         t = pd.concat([g.size().rename("n"), g.mean().rename("moyenne_j"), q], axis=1).reset_index()
         return t[t["n"] >= seuil].drop(columns="n")
     fin = resume(["specialite", "mode_entree", "classe_age"])
     repli = resume(["specialite"])
-    colonnes = avec_site(["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"], passages, site)
+    colonnes = avec_site(["specialite", "mode_entree", "classe_age", "mediane_j", "q1_j", "q3_j", "moyenne_j"], passages, contexte)
     return (pd.concat([fin, repli], ignore_index=True).reindex(columns=colonnes)
             .fillna({"mode_entree": "", "classe_age": ""}).round(3))
 
@@ -537,7 +538,7 @@ def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = N
 # ---------------------------------------------------------------------------
 
 def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racine: pd.DataFrame,
-                                     seuil: int | None = None, site: bool = True) -> pd.DataFrame:
+                                     seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """soins_critiques_ghm.csv avec le repli appliqué à la fabrication.
 
     ``fin`` : (ghm, classe_age_duree, n, part_rea, part_usi, part_usc) ;
@@ -546,7 +547,7 @@ def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racin
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     parts = list(REGLAGES.parts_soins_critiques)
-    site = avec_site([], fin, site)
+    site = avec_site([], fin, contexte)
     t = fin.merge(ghm[site + ["ghm", "n"] + parts], on=site + ["ghm"], suffixes=("", "_ghm"))
     for p in parts:
         t[p] = t[p].where(t["n"] >= seuil, t[p + "_ghm"])

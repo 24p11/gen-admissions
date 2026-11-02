@@ -37,17 +37,20 @@ import numpy as np
 
 # Réglages de normalisation : définis ici, et passés explicitement à chaque appel, pour que chaque
 # cellule dise avec quelles valeurs elle calcule. Par exemple :
-#     sexe_racine = normaliser(df_s_rac, colonnes_bloc=["racine_ghm"], seuil=SEUIL, site=False)
-#     tp = table_passage_depuis_effectifs(effectifs, seuil=SEUIL, part_min=PART_MIN)
+#     sexe_racine = normaliser(df_s_rac, colonnes_bloc=["racine_ghm"], contexte=[], seuil=SEUIL)        # sans site
+#     venues = venues_depuis_effectifs(effectifs, contexte=SITE, seuil=SEUIL)                            # par site
+#     tp = table_passage_depuis_effectifs(effectifs, contexte=SITE, seuil=SEUIL, part_min=PART_MIN)
+# `contexte` est la liste des colonnes placées en tête de tous les blocs de normalisation (le site) ;
+# sans `contexte`, la colonne de site de configurer() est utilisée si elle est présente dans le tableau.
 SEUIL = 100                          # séjours, sur la période d'observation
 PART_MIN = 0.10                      # part à partir de laquelle un service est de rang 1
-SITE = ("nohop",)                    # colonne(s) de site ; () pour un calcul sans site
+SITE = ["nohop"]                     # colonne(s) de site ; [] pour un calcul sans site
 
 # Réglages de structure (classes, saisons, listes de colonnes), lus par toutes les fonctions :
 configurer(
     seuil_effectif=SEUIL,                # valeur par défaut si un appel ne précise pas seuil=
     part_min_service_habituel=PART_MIN,  # idem pour part_min=
-    colonnes_site=SITE,                  # ajoutée aux blocs quand la colonne est présente dans le tableau
+    colonnes_site=tuple(SITE),           # défaut des appels sans contexte=, quand la colonne est présente dans le tableau
     bornes_age=(17, 64, 74),             # 0-17, 18-64, 65-74, 75+
     bornes_age_duree=(59,),              # 0-59, 60+
     bornes_tranches_h=(1, 2, 4, 6, 12, 24),
