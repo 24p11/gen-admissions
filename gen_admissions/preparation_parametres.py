@@ -370,10 +370,10 @@ def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
             .reindex(columns=contexte + COLONNES_PROFIL_ARRIVEES + ["n"]).fillna(""))
 
 
-def profil_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+def profil_depuis_effectifs(effectifs: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Parts par dimension (elles somment à 1 dans chaque dimension), sans seuil."""
     t = effectifs.copy()
-    cles = avec_site(avec_saison(["dimension"]), t)
+    cles = avec_site(avec_saison(["dimension"]), t, contexte)
     t["part"] = (t["n"] / t.groupby(cles)["n"].transform("sum")).round(6)
     tri = cles + [c for c in ("valeur", "jour_semaine", "heure", "mois") if c in t.columns]
     return t.drop(columns="n").sort_values(tri).reset_index(drop=True)
@@ -397,10 +397,10 @@ def effectifs_patients_urgences(v: pd.DataFrame) -> pd.DataFrame:
     return t.groupby(avec_site(["classe_age", "sexe"], t)).size().reset_index(name="n")
 
 
-def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """profil_patients_urgences.csv : parts qui somment à 1 sur l'ensemble (par site)."""
     t = effectifs.copy()
-    cles = avec_site([], t)
+    cles = avec_site([], t, contexte)
     total = t.groupby(cles)["n"].transform("sum") if cles else t["n"].sum()
     t["part"] = (t["n"] / total).round(6)
     return t.drop(columns="n").sort_values(cles + ["classe_age", "sexe"]).reset_index(drop=True)
