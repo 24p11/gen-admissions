@@ -233,7 +233,10 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
 
 
 def additionner(effectifs_par_annee: Iterable[pd.DataFrame], colonnes: Sequence[str]) -> pd.DataFrame:
-    """Somme des effectifs de plusieurs années (mêmes colonnes de contexte + ``n``)."""
+    """Somme des effectifs de plusieurs années (mêmes colonnes de contexte + ``n``).
+    Accepte aussi un tableau seul."""
+    if isinstance(effectifs_par_annee, pd.DataFrame):
+        effectifs_par_annee = [effectifs_par_annee]
     tout = pd.concat(list(effectifs_par_annee), ignore_index=True)
     return tout.groupby(avec_site(colonnes, tout), as_index=False)["n"].sum()
 
