@@ -160,8 +160,9 @@ def tranche_heures(duree_h: pd.Series) -> pd.Series:
 # Normalisation, rang, repli
 # ---------------------------------------------------------------------------
 
-def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif: str = "n",
-               seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
+def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categorie: Sequence[str] | None = None,
+               colonne_effectif: str = "n", seuil: int | None = None,
+               contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
 
     Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
@@ -170,13 +171,19 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonne_effectif:
     transmise. Renvoie les colonnes du bloc, les colonnes de catégorie,
     ``part`` et ``observe`` (True si la ligne était au-dessus du seuil).
     ``observe`` sert au calcul du rang et ne doit pas être écrite dans les
-    fichiers. ``seuil`` : par défaut REGLAGES.seuil_effectif. Les colonnes de
-    contexte sont prises telles quelles si ``contexte`` est donné ([] : aucune),
-    sinon celles de REGLAGES présentes dans ``df``.
+    fichiers. ``colonnes_categorie`` : ce qui est tiré ; si elle est donnée, la
+    sortie se limite à bloc + catégories + part + observe, dans cet ordre ;
+    sinon toute colonne qui n'est ni le bloc ni l'effectif est une catégorie.
+    ``seuil`` : par défaut REGLAGES.seuil_effectif. Les colonnes de contexte
+    sont prises telles quelles si ``contexte`` est donné ([] : aucune), sinon
+    celles de REGLAGES présentes dans ``df``.
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
     df = df.copy()
     colonnes_bloc = avec_site(colonnes_bloc, df, contexte)
+    if colonnes_categorie is not None:
+        df = df[colonnes_bloc + list(colonnes_categorie) + [colonne_effectif]]
+        df = df.groupby(colonnes_bloc + list(colonnes_categorie), as_index=False)[colonne_effectif].sum()
     cles = [df[c] for c in colonnes_bloc]
     total = df.groupby(cles)[colonne_effectif].transform("sum")
     rare = df[colonne_effectif] < seuil
@@ -217,11 +224,10 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
     """
     colonnes_bloc = avec_site(colonnes_bloc, effectifs, contexte)
     colonnes_categorie = list(colonnes_categorie)
-    morceaux = [normaliser(effectifs, colonnes_bloc, seuil=seuil, contexte=[])]
+    morceaux = [normaliser(effectifs, colonnes_bloc, colonnes_categorie, seuil=seuil, contexte=[])]
     for sous_bloc in replis:
         sous_bloc = avec_site(sous_bloc, effectifs, contexte)
-        eff = effectifs.groupby(sous_bloc + colonnes_categorie, as_index=False)["n"].sum()
-        morceaux.append(normaliser(eff, sous_bloc, seuil=seuil, contexte=[]))
+        morceaux.append(normaliser(effectifs, sous_bloc, colonnes_categorie, seuil=seuil, contexte=[]))
     colonnes = colonnes_bloc + colonnes_categorie + ["part"]
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({c: "" for c in colonnes_bloc})
 
