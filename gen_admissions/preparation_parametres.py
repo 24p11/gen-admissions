@@ -434,6 +434,74 @@ def gravite_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, 
 
 
 # ---------------------------------------------------------------------------
+# Tension du jour (classes_tension.csv) et série quotidienne
+# ---------------------------------------------------------------------------
+
+def tension_journaliere(sejours: pd.DataFrame, lits, debut, fin,
+                        contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """Série quotidienne de tension : par jour (et par site), patients présents
+    au relevé, dont venus des urgences, et tension = urgences / lits.
+
+    ``sejours`` : ``date_entree``, ``date_sortie``, ``urgences`` (1 si venu des
+    urgences, UHCD comprise), plus le site. Présent le jour J : entré avant J
+    et sorti le jour J ou après (dates PMSI sans heure, relevé du matin).
+    ``lits`` : nombre de lits installés hors urgences, ou dict site → nombre.
+    ``debut``, ``fin`` : premier et dernier jour de la série.
+    """
+    jours = pd.date_range(debut, fin, freq="D")
+    cles = avec_site([], sejours, contexte)
+    entree = pd.to_datetime(sejours["date_entree"]).dt.normalize()
+    sortie = pd.to_datetime(sejours["date_sortie"]).dt.normalize()
+    urg = sejours["urgences"].fillna(0).astype(int).values
+    # Comptage par différences : +1 le lendemain de l'entrée, -1 le lendemain de la sortie,
+    # puis somme cumulée sur le calendrier (vectoriel, quel que soit le nombre de séjours).
+    n = len(jours) + 1                      # une case de plus, pour les sorties après la fin de la série
+    i_deb = ((entree - jours[0]).dt.days + 1).clip(lower=0, upper=n - 1).values
+    i_fin = ((sortie - jours[0]).dt.days + 1).clip(lower=0, upper=n - 1).values
+    groupes = sejours.groupby(cles).indices if cles else {(): np.arange(len(sejours))}
+    lignes = []
+    for cle, idx in groupes.items():
+        cle = cle if isinstance(cle, tuple) else (cle,)
+        total, urgences = np.zeros(n), np.zeros(n)
+        np.add.at(total, i_deb[idx], 1); np.add.at(total, i_fin[idx], -1)
+        np.add.at(urgences, i_deb[idx], urg[idx]); np.add.at(urgences, i_fin[idx], -urg[idx])
+        present, present_urg = np.cumsum(total)[:len(jours)], np.cumsum(urgences)[:len(jours)]
+        nb_lits = lits[cle[0]] if isinstance(lits, dict) else lits
+        t = pd.DataFrame({"date": jours, "presents": present.astype(int), "presents_urgences": present_urg.astype(int)})
+        t["tension"] = (t["presents_urgences"] / nb_lits).round(4)
+        for c, v in zip(cles, cle):
+            t.insert(0, c, v)
+        lignes.append(t)
+    return pd.concat(lignes, ignore_index=True)
+
+
+def classes_tension_depuis_tension(tension: pd.DataFrame, quantiles=(1 / 3, 2 / 3),
+                                   contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """classes_tension.csv : bornes de la tension (terciles par défaut), par site.
+    Colonnes : classe (basse, moyenne, haute), borne_inf, borne_sup."""
+    cles = avec_site([], tension, contexte)
+    libelles = ["basse", "moyenne", "haute"]
+
+    def bornes(serie: pd.Series) -> pd.DataFrame:
+        q = [round(float(serie.quantile(x)), 4) for x in quantiles]
+        inf = ["", *q]
+        sup = [*q, ""]
+        return pd.DataFrame({"classe": libelles, "borne_inf": inf, "borne_sup": sup})
+
+    if not cles:
+        return bornes(tension["tension"])
+    return (tension.groupby(cles)["tension"].apply(bornes).reset_index(level=cles)
+            .reset_index(drop=True))
+
+
+def classe_tension(tension: pd.Series, bornes: pd.DataFrame) -> pd.Series:
+    """Classe de tension d'une série de valeurs, d'après une table de bornes
+    (d'un seul site : filtrer avant)."""
+    seuils = [float(x) for x in bornes["borne_sup"] if x != ""]
+    return pd.cut(tension, bins=[-np.inf, *seuils, np.inf], labels=bornes["classe"].tolist(), right=False).astype(str)
+
+
+# ---------------------------------------------------------------------------
 # Premier service par racine (premier_service_racine.csv)
 # ---------------------------------------------------------------------------
 

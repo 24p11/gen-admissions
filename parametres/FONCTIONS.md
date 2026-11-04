@@ -91,3 +91,16 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
   repli par spécialité.
 - **`soins_critiques_depuis_effectifs(fin, ghm, racine, seuil=None, contexte=None)`** :
   parts par GHM × classe d'âge avec repli (GHM seul, puis racine) appliqué à la fabrication.
+
+## 8. Tension du jour
+
+- **`tension_journaliere(sejours, lits, debut, fin, contexte=None)`** : série
+  quotidienne (par site) des patients présents au relevé, dont venus des
+  urgences, et tension = urgences / lits. `sejours` : `date_entree`,
+  `date_sortie`, `urgences` (0/1). Présent le jour J : entré avant J, sorti J
+  ou après. À conserver : sert aux bornes, au contrôle, et à classer chaque
+  venue pour `durees_passage_urgences` et `supplement_rang2`.
+- **`classes_tension_depuis_tension(tension, quantiles=(1/3, 2/3), contexte=None)`** :
+  `classes_tension.csv`, bornes (terciles) par site.
+- **`classe_tension(tension, bornes)`** : classe (basse, moyenne, haute) d'une
+  série de tensions d'après les bornes d'un site.
