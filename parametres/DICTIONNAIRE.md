@@ -615,14 +615,19 @@ autre tirage.
 | Colonne | Contenu |
 | --- | --- |
 | `classe` | basse, moyenne, haute |
-| `borne_inf`, `borne_sup` | bornes de la part des lits occupés par des patients venus des urgences (borne basse incluse ; `borne_inf` vide pour la première classe, `borne_sup` vide pour la dernière) |
+| `borne_inf`, `borne_sup` | bornes du nombre de patients présents venus des urgences (borne basse incluse ; `borne_inf` vide pour la première classe, `borne_sup` vide pour la dernière) |
 
-**Définition de la tension.** Chaque jour à `heure_releve_tension`, nombre
-de patients présents dont le séjour est venu des urgences (UHCD comprise),
-divisé par le nombre total de lits installés (tous services sauf les
-urgences). Dans le simulateur, elle est calculée sur l'état simulé ; sur les
-données réelles, sur l'historique des mouvements (ou, à défaut, sur les RUM
-au jour).
+**Définition de la tension.** Chaque jour à `heure_releve_tension`, le
+**nombre** de patients présents dont le séjour est venu des urgences (UHCD
+comprise), en valeur absolue. On ne le rapporte pas aux lits, parce que le
+dénominateur pertinent, les lits réellement ouverts, varie avec la période
+et le personnel et n'est pas connu dans les données ; un pourcentage des
+lits autorisés mesurerait mal la saturation. Dans le simulateur, qui
+connaît ses lits ouverts, les bornes sont ajustées au prorata des lits
+ouverts quand un scénario en change le nombre (bornes × lits du scénario ÷
+lits de référence), ce qui rend l'indicateur équivalent à un taux. Sur les
+données réelles, calculé sur l'historique des mouvements ou, à défaut, sur
+les séjours au jour (présent le jour J : entré avant J, sorti J ou après).
 
 **Calcul des bornes.** Série quotidienne de la tension sur l'historique ;
 les deux bornes sont les terciles (33e et 67e centiles). D'autres bornes sont

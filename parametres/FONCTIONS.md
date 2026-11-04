@@ -94,13 +94,13 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
 
 ## 8. Tension du jour
 
-- **`tension_journaliere(sejours, lits, debut, fin, contexte=None)`** : série
+- **`tension_journaliere(sejours, debut, fin, contexte=None)`** : série
   quotidienne (par site) des patients présents au relevé, dont venus des
-  urgences, et tension = urgences / lits. `sejours` : `date_entree`,
+  urgences ; la tension est ce nombre, en valeur absolue. `sejours` : `date_entree`,
   `date_sortie`, `urgences` (0/1). Présent le jour J : entré avant J, sorti J
   ou après. À conserver : sert aux bornes, au contrôle, et à classer chaque
   venue pour `durees_passage_urgences` et `supplement_rang2`.
 - **`classes_tension_depuis_tension(tension, quantiles=(1/3, 2/3), contexte=None)`** :
-  `classes_tension.csv`, bornes (terciles) par site.
+  `classes_tension.csv`, bornes (terciles) par site, en nombre de patients.
 - **`classe_tension(tension, bornes)`** : classe (basse, moyenne, haute) d'une
   série de tensions d'après les bornes d'un site.
