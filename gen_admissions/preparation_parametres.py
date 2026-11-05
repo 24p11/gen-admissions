@@ -555,6 +555,10 @@ def effectifs_durees_urgences(v: pd.DataFrame, tension_classee: pd.DataFrame,
         print(f"{sans_classe.mean():.1%} de venues sans classe de tension (jour absent de la série), exclues")
         t = t[~sans_classe]
     if premier_service_racine is not None:
+        if "premier_service" not in t.columns:
+            raise KeyError("effectifs_durees_urgences : la colonne premier_service manque dans les venues ; "
+                           "ajoutez à la requête la spécialité du premier RUM hors UHCD du séjour chaîné, "
+                           "ou passez premier_service_racine=None pour ne pas filtrer sur le rang")
         rangs = premier_service_racine[premier_service_racine["classe_age"].astype(str) != ""]
         rangs = rangs[avec_site(["racine_ghm", "classe_age", "specialite", "rang"], rangs, contexte)].rename(
             columns={"specialite": "premier_service", "rang": "rang_premier"})
