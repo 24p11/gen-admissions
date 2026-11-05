@@ -198,8 +198,7 @@ lits:
     programme: 2
 
 sorties:
-  facteur_weekend: 0.45                # sorties du samedi et du dimanche, en proportion d'un jour de semaine (C8)
-  services_sans_effet_weekend: [REA, USC, USIC, URG]
+  services_sans_effet_weekend: [REA, USC, USIC, URG]   # services où le profil horaire des sorties ne s'applique pas (sorties à toute heure)
 
 population:
   probabilite_retour:                  # part des arrivants qui sont des patients déjà connus (E)
@@ -690,22 +689,40 @@ rang 2 − rang 1 évite de compter deux fois la même attente.
 
 | Colonne | Contenu |
 | --- | --- |
-| `dimension` | `jour_semaine`, `heure` |
-| `valeur`, `part` | bloc : chaque dimension |
+| `dimension` | `semaine` |
+| `jour_semaine`, `heure` | 1 (lundi) à 7, et 0 à 23 |
+| `part` | proportion |
 
-**Calcul.** Séjours non venus des urgences : part des entrées par jour de la
-semaine et par heure (mouvements, ou RUM si l'heure est connue).
+Bloc : l'ensemble des 168 cases (par site). Même forme que la composante
+`semaine` du profil d'arrivées aux urgences.
 
-### `profil_sorties.csv` — à quelle heure sort-on (C8)
+**Calcul.** Mouvements administratifs de la dernière année : entrées dans
+l'hôpital non venues des urgences, comptées par jour de la semaine × heure.
+Les RSS n'ayant pas l'heure, cette table demande les mouvements ; à défaut,
+un profil d'expert (entrées du lundi au vendredi, entre 7 h et 11 h).
+
+### `profil_sorties.csv` — quand sort-on (C8)
 
 | Colonne | Contenu |
 | --- | --- |
-| `heure`, `part` | bloc : l'ensemble |
+| `dimension` | `semaine` |
+| `jour_semaine`, `heure` | 1 (lundi) à 7, et 0 à 23 |
+| `part` | proportion |
 
-**Calcul.** Mouvements de sortie : part par heure. L'effet du week-end
-est dans la structure (`facteur_weekend`).
+Bloc : l'ensemble des 168 cases (par site). Le creux des sorties du week-end
+est ainsi lu dans les données ; il n'y a plus de facteur de week-end dans la
+structure.
 
----
+**Calcul.** Mouvements administratifs de la dernière année : sorties de
+l'hôpital (pas les mutations internes), comptées par jour de la semaine ×
+heure. À défaut de mouvements, un profil d'expert (sorties entre 10 h et
+17 h, pic en fin de matinée, moins le week-end).
+
+**Usage.** Le simulateur tire la durée du séjour en jours (C3, C6), puis
+place l'heure de sortie dans la journée selon ce profil ; comme le profil
+porte aussi le jour de la semaine, une sortie prévue un samedi est, avec la
+probabilité correspondante, décalée au lundi, et symétriquement, de façon
+que la durée moyenne soit conservée.
 
 ## 6. Fichier de contrôle (pas un paramètre)
 
@@ -750,7 +767,7 @@ lit, reports d'entrées programmées), de préférence par classe de tension.
 | C5 | trajectoire, étape par étape | `table_passage.csv` |
 | C6 | durée par étape | `durees_passage.csv` |
 | C7 | mode de sortie | `sorties.csv` |
-| C8 | heures de sortie, effet week-end | `profil_sorties.csv`, `structure.yaml` |
+| C8 | heures et jours de sortie | `profil_sorties.csv` |
 | D1 | tension du jour | `classes_tension.csv`, `structure.yaml` (heure_releve_tension) |
 | D2–D6 | service obtenu, rang, attentes | `premier_service_racine.csv`, `table_passage.csv` (rang), `supplement_rang2.csv`, `structure.yaml` (priorités, soins critiques) |
 | D7 | transfert, report | `structure.yaml` (delai_transfert_h, delai_report_programme_h) |
