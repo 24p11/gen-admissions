@@ -128,3 +128,8 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
 - **`supplement_depuis_effectifs(effectifs, seuil=None, contexte=None)`** :
   `supplement_rang2.csv`, bloc classe de tension, repli sur l'ensemble.
 - `normaliser` accepte désormais un bloc vide (`[]`) : les parts somment à 1 sur l'ensemble.
+
+## 11. Cibles
+
+- **`cible(indicateur, observe, tolerance=0.10, absolue=False, service="", classe_tension="", **contexte)`** :
+  une ligne de `cibles.csv` (observé, min, max), tolérance relative ou absolue.

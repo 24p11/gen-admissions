@@ -793,6 +793,20 @@ def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racin
 
 
 # ---------------------------------------------------------------------------
+# Cibles du tableau de contrôle (controle/cibles.csv)
+# ---------------------------------------------------------------------------
+
+def cible(indicateur: str, observe: float, tolerance: float = 0.10, absolue: bool = False,
+          service: str = "", classe_tension: str = "", **contexte) -> dict:
+    """Une ligne de cibles.csv : fourchette = observé ± tolérance, relative par
+    défaut (0,10 = ± 10 %) ou absolue (``absolue=True`` : ± tolérance).
+    ``contexte`` : colonnes de site (nohop="H1")."""
+    marge = abs(observe) * tolerance if not absolue else tolerance
+    return {**contexte, "indicateur": indicateur, "service": service, "classe_tension": classe_tension,
+            "observe": round(float(observe), 4), "min": round(float(observe - marge), 4), "max": round(float(observe + marge), 4)}
+
+
+# ---------------------------------------------------------------------------
 # Contrôles
 # ---------------------------------------------------------------------------
 
