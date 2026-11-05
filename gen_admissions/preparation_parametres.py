@@ -312,7 +312,7 @@ def gravite_ccmu(ccmu: pd.Series) -> pd.Series:
     return g.where(g.isin(list("12345")), "")
 
 
-def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
+def effectifs_venues(v: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Effectifs par (mois, classe d'âge, situation, gravité, racine) pour une année.
 
     Colonnes attendues en plus de celles de ``situation_venue`` : ``periode``,
@@ -333,7 +333,7 @@ def effectifs_venues(v: pd.DataFrame) -> pd.DataFrame:
     v["gravite"] = np.where(avec_sejour, "", gravite_ccmu(v["ccmu"]))
     v["racine_ghm"] = np.where(avec_sejour, v["ghm"].astype(str).str[:5], "")
     v = v[~(avec_sejour & v["ghm"].isna())]
-    return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues), v)).size().reset_index(name="n")
+    return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues), v, contexte)).size().reset_index(name="n")
 
 
 def venues_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
@@ -346,7 +346,8 @@ def venues_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, c
 # Profils (profil_arrivees_urgences.csv, profil_entrees_programmees.csv, profil_sorties.csv…)
 # ---------------------------------------------------------------------------
 
-def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series]) -> pd.DataFrame:
+def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series],
+                     contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Effectifs par dimension : une ligne par (dimension, valeur), avec ``n``.
 
     ``dimensions`` : nom → série de valeurs alignée sur ``df`` (par exemple
@@ -355,19 +356,19 @@ def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series]) -> pd.D
     morceaux = []
     for dimension, valeur in dimensions.items():
         t = df.assign(dimension=dimension, valeur=np.asarray(valeur))
-        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"]), t)).size().reset_index(name="n"))
+        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"]), t, contexte)).size().reset_index(name="n"))
     return pd.concat(morceaux, ignore_index=True)
 
 
 COLONNES_PROFIL_ARRIVEES = ["dimension", "jour_semaine", "heure", "mois"]
 
 
-def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
+def effectifs_arrivees(v: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Effectifs des arrivées aux urgences en deux composantes : ``semaine``
     (jour de la semaine × heure, 1 = lundi … 7 = dimanche) et ``mois``.
     Colonne attendue : ``date_entree`` (date et heure)."""
     d = pd.to_datetime(v["date_entree"])
-    contexte = avec_site(avec_saison([]), v)
+    contexte = avec_site(avec_saison([]), v, contexte)
     base = v[contexte].copy()
     semaine = base.assign(dimension="semaine", jour_semaine=(d.dt.dayofweek + 1).values, heure=d.dt.hour.values)
     mois = base.assign(dimension="mois", mois=d.dt.month.values)
@@ -377,6 +378,17 @@ def effectifs_arrivees(v: pd.DataFrame) -> pd.DataFrame:
     ]
     return (pd.concat(morceaux, ignore_index=True)
             .reindex(columns=contexte + COLONNES_PROFIL_ARRIVEES + ["n"]).fillna(""))
+
+
+def effectifs_entrees_programmees(sejours: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """Effectifs des entrées programmées (séjours non venus des urgences) par jour
+    de la semaine (1 = lundi) et, si la date d'entrée porte une heure, par heure.
+    Colonne attendue : ``date_entree``."""
+    d = pd.to_datetime(sejours["date_entree"])
+    dimensions = {"jour_semaine": d.dt.dayofweek + 1}
+    if (d.dt.hour != 0).any():
+        dimensions["heure"] = d.dt.hour
+    return effectifs_profil(sejours, dimensions, contexte)
 
 
 def profil_depuis_effectifs(effectifs: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
@@ -398,12 +410,12 @@ def sexe_mf(sexe: pd.Series) -> pd.Series:
     return s.where(s.isin(["M", "F"]), "")
 
 
-def effectifs_patients_urgences(v: pd.DataFrame) -> pd.DataFrame:
+def effectifs_patients_urgences(v: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Effectifs des venues par classe d'âge × sexe (sexe inconnu écarté).
     Colonnes attendues : ``classe_age``, ``sexe``."""
     t = v.assign(sexe=sexe_mf(v["sexe"]))
     t = t[t["sexe"] != ""]
-    return t.groupby(avec_site(["classe_age", "sexe"], t)).size().reset_index(name="n")
+    return t.groupby(avec_site(["classe_age", "sexe"], t, contexte)).size().reset_index(name="n")
 
 
 def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
@@ -419,7 +431,7 @@ def patients_urgences_depuis_effectifs(effectifs: pd.DataFrame, contexte: Sequen
 # Gravité CCMU des hospitalisés (gravite_urgences.csv)
 # ---------------------------------------------------------------------------
 
-def effectifs_gravite(v: pd.DataFrame) -> pd.DataFrame:
+def effectifs_gravite(v: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Effectifs des venues hospitalisées par classe d'âge × situation × tranche
     de durée × gravité (CCMU inconnue écartée). Colonnes attendues :
     ``classe_age``, ``ccmu``, ``date_entree``, ``date_sortie`` et celles de
@@ -430,7 +442,7 @@ def effectifs_gravite(v: pd.DataFrame) -> pd.DataFrame:
     t = t[t["gravite"] != ""]
     duree_h = (pd.to_datetime(t["date_sortie"]) - pd.to_datetime(t["date_entree"])).dt.total_seconds() / 3600
     t["tranche_h"] = tranche_heures(duree_h)
-    return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"], t)).size().reset_index(name="n")
+    return t.groupby(avec_site(["classe_age", "situation", "tranche_h", "gravite"], t, contexte)).size().reset_index(name="n")
 
 
 def gravite_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
@@ -657,7 +669,7 @@ def premier_service_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None 
 # Table de passage (table_passage.csv)
 # ---------------------------------------------------------------------------
 
-def etapes_sejours(rum: pd.DataFrame) -> pd.DataFrame:
+def etapes_sejours(rum: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Découpe les séjours en étapes : une ligne par passage de spécialité, avec
     le service précédent (``AUCUN`` au début) et la suite (``sortie`` à la fin).
 
@@ -674,18 +686,18 @@ def etapes_sejours(rum: pd.DataFrame) -> pd.DataFrame:
     df["precedent"] = df["specialite"].shift(1).where(avant, "AUCUN")
     df["suite"] = df["specialite"].shift(-1).where(apres, "sortie")
     return df.rename(columns={"specialite": "service"})[
-        avec_site(["id_sejour", "service", "precedent", "classe_age", "mode_entree", "suite"], df)]
+        avec_site(["id_sejour", "service", "precedent", "classe_age", "mode_entree", "suite"], df, contexte)]
 
 
-def effectifs_passage(etapes: pd.DataFrame) -> pd.DataFrame:
+def effectifs_passage(etapes: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Compte les transitions aux deux niveaux. Colonnes : contexte + ``n``."""
     morceaux = []
     for niveau, colonnes in REGLAGES.blocs_passage.items():
-        n = etapes.groupby(avec_site(colonnes, etapes) + ["suite"]).size().reset_index(name="n")
+        n = etapes.groupby(avec_site(colonnes, etapes, contexte) + ["suite"]).size().reset_index(name="n")
         n["niveau"] = niveau
         morceaux.append(n)
     return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, etapes) + ["n"]).fillna(""))
+            .reindex(columns=avec_site(REGLAGES.colonnes_contexte_passage, etapes, contexte) + ["n"]).fillna(""))
 
 
 def table_passage_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
@@ -705,7 +717,7 @@ def table_passage_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = 
 # Durées de passage par spécialité (durees_passage.csv)
 # ---------------------------------------------------------------------------
 
-def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
+def passages_specialite(rum: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Une ligne par passage de spécialité (RUM consécutifs de même spécialité
     fusionnés), avec sa durée en jours décimaux.
 
@@ -718,10 +730,10 @@ def passages_specialite(rum: pd.DataFrame) -> pd.DataFrame:
         df[c] = pd.to_datetime(df[c])
     nouveau = ~(df["id_sejour"].eq(df["id_sejour"].shift()) & df["specialite"].eq(df["specialite"].shift()))
     df["id_passage"] = nouveau.cumsum()
-    premieres = {c: (c, "first") for c in avec_site(["specialite", "mode_entree", "classe_age"], df)}
+    premieres = {c: (c, "first") for c in avec_site(["specialite", "mode_entree", "classe_age"], df, contexte)}
     p = df.groupby("id_passage").agg(**premieres, date_entree=("date_entree", "min"), date_sortie=("date_sortie", "max"))
     p["duree_j"] = (p["date_sortie"] - p["date_entree"]).dt.total_seconds() / 86400
-    return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"], df)].reset_index(drop=True)
+    return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"], df, contexte)].reset_index(drop=True)
 
 
 def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
