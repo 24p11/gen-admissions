@@ -764,7 +764,7 @@ d'occupation, les lits réellement ouverts n'étant pas connus.
 | A5 | gravité CCMU des hospitalisés, sachant situation et tranche de durée | `gravite_urgences.csv` |
 | A6 | lit d'UHCD à la 6e heure (situations hospitalisation et mono_uhcd) | `structure.yaml` (seuil_uhcd_h) |
 | A7 | premier service (situation hospitalisation) | `premier_service_racine.csv` |
-| B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (lits, occupation_visee), `durees_passage.csv`, tables A3 et A7 |
+| B1 | nombre d'entrées programmées par jour et service | `structure.yaml` (presents_vises), `durees_passage.csv`, tables A3 et A7 |
 | B2 | jour et heure d'entrée | `profil_entrees_programmees.csv` |
 | B3 | classe d'âge et racine | `casemix.csv` |
 | B4 | report au lendemain | `structure.yaml` (delai_report_programme_h) |
