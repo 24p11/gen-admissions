@@ -168,7 +168,7 @@ services:                              # un bloc par service
     libelle: Cardiologie
     specialite: CARDIO
     lits: 36
-    occupation_visee: 0.90             # sert au calcul des entrées programmées (B1)
+    presents_vises: 32                 # nombre moyen de patients présents visé ; sert au calcul des entrées programmées (B1)
   PED:
     libelle: Pédiatrie
     specialite: PED
@@ -499,8 +499,9 @@ entiers. Par bloc, médiane, quartiles et moyenne, sur les blocs d'au moins
 `seuil_effectif` passages.
 
 **Usage.** `moyenne_j` sert à la loi de Little (B1) : entrées programmées du
-mois = lits × occupation visée × jours du mois ÷ moyenne, moins les entrées
-attendues par les urgences et par mutation. La médiane sert à répartir la
+mois = présents visés × jours du mois ÷ moyenne, moins les entrées attendues
+par les urgences et par mutation (les présents visés remplacent lits ×
+taux d'occupation, les lits réellement ouverts n'étant pas connus). La médiane sert à répartir la
 durée totale du séjour entre les étapes de la trajectoire (C6).
 
 ---
@@ -733,15 +734,22 @@ que la durée moyenne soit conservée.
 | `indicateur` | nom de l'indicateur du tableau de contrôle |
 | `service` | service, ou vide pour l'hôpital entier |
 | `classe_tension` | classe, ou vide |
-| `min`, `max` | fourchette acceptée |
+| `observe` | valeur observée sur les données (pour mémoire) |
+| `min`, `max` | fourchette acceptée : observé ± tolérance (relative, 10 % en général ; absolue pour une part) |
 
 Le simulateur ne lit pas ce fichier pour simuler ; il sert au tableau de
 contrôle (`controle.md`) qui compare le jeu produit aux attentes. Les
-fourchettes viennent des agrégats de référence quand ils existent (taux
-d'occupation, durées, part des séjours venus des urgences, nombre de RUM par
-séjour) et de choix d'expert sinon (part des premiers services de rang 2,
-lits brancards, occupation de l'UHCD, attente médiane, transferts faute de
-lit, reports d'entrées programmées), de préférence par classe de tension.
+fourchettes viennent des données quand l'indicateur y est mesurable :
+`presents_moyens` et `dms` par spécialité (nombre moyen de patients présents
+= somme des durées de passage ÷ nombre de jours, loi de Little ; durée
+moyenne de passage), `part_urgences` par spécialité, `nb_etapes` moyen par
+séjour, parts des situations des venues (`part_hospitalisation`,
+`part_mono_uhcd`, `part_transfert`), `part_rang2` des hospitalisés,
+`duree_mediane_urgences` par classe de tension, `tension_moyenne`,
+`taux_rehospitalisation_30j`. Elles viennent de choix d'expert pour ce que
+le PMSI ne mesure pas (lits brancards, attente de lit aux urgences, reports
+d'entrées programmées). Le nombre de présents est préféré au taux
+d'occupation, les lits réellement ouverts n'étant pas connus.
 
 ---
 
