@@ -116,26 +116,37 @@ AUTRES = ["structure.yaml", "specialites.csv", "regroupements_ghm.csv", "soins_c
           "durees_passage.csv", "classes_tension.csv", "cibles.csv"]
 
 
-def verifier_dossier(dossier, contexte):
+def sommes_fautives(t, bloc, tolerance):
+    """Blocs dont la somme des parts s'écarte de 1 de plus que la tolérance (Series somme, avec n lignes)."""
+    g = t.groupby(bloc)["part"] if bloc else t.assign(_un=1).groupby("_un")["part"]
+    bilan = g.agg(somme="sum", lignes="size")
+    return bilan[(bilan["somme"] - 1).abs() > tolerance]
+
+
+def verifier_dossier(dossier, contexte, tolerance=1e-3):
+    """Pour chaque fichier attendu : présence, colonnes, sommes à 1 par bloc (niveau fin, puis replis)."""
     dossier = Path(dossier)
     for nom, (colonnes, bloc, replis) in ATTENDUS.items():
         f = dossier / f"{nom}.csv"
         if not f.exists():
             print(f"MANQUANT  {nom}"); continue
         t = pd.read_csv(f, dtype=str, keep_default_na=False)
-        t["part"] = t["part"].astype(float)
         manquantes = [c for c in colonnes if c not in t.columns]
         if manquantes:
-            print(f"COLONNES  {nom} : manque {manquantes}"); continue
-        # le niveau fin : aucune colonne de bloc vide ; chaque niveau de repli : vérifié avec ses colonnes non vides
+            print(f"COLONNES  {nom} : manque {manquantes} ; colonnes du fichier : {list(t.columns)}"); continue
+        t["part"] = t["part"].astype(float)
+        # niveau fin : aucune colonne de repli vide ; replis : regroupés selon les colonnes vides
         vides = (t[replis] == "").any(axis=1) if replis else pd.Series(False, index=t.index)
-        try:
-            verifier_table(t[~vides], bloc, contexte=contexte)
-            for _, part in t[vides].groupby([t.loc[vides, c] == "" for c in replis]) if vides.any() else []:
-                verifier_table(part, [c for c in bloc if (part[c] != "").all()], contexte=contexte)
+        fautives = [sommes_fautives(t[~vides], bloc, tolerance)]
+        if vides.any():
+            for _, part in t[vides].groupby([t.loc[vides, c] == "" for c in replis]):
+                fautives.append(sommes_fautives(part, [c for c in bloc if (part[c] != "").all()], tolerance))
+        fautives = pd.concat(fautives)
+        if len(fautives):
+            print(f"SOMMES    {nom} : {len(fautives)} blocs ne somment pas à 1 (tolérance {tolerance}) ; premiers :")
+            print(fautives.head().to_string())
+        else:
             print(f"ok        {nom} ({len(t)} lignes)")
-        except ValueError as e:
-            print(f"SOMMES    {nom} : {str(e).splitlines()[0]}")
     for nom in AUTRES:
         print(("ok        " if (dossier / nom).exists() else "MANQUANT  ") + nom)
 
