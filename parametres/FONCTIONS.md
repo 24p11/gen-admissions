@@ -64,6 +64,7 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
 - **`effectifs_profil(df, dimensions)`** : comptage par (dimension, valeur) pour
   un dictionnaire nom → série.
 - **`effectifs_arrivees(v)`** : composantes `semaine` (jour × heure) et `mois`.
+- **`effectifs_profil_semaine(df, dates, contexte=None)`** : effectifs jour de la semaine × heure (dimension `semaine`), pour les profils d'entrées programmées et de sorties calculés sur les mouvements.
 - **`effectifs_entrees_programmees(sejours)`** : entrées programmées par jour de la semaine (et par heure si les dates en ont).
 - **`profil_depuis_effectifs(effectifs)`** : parts par dimension, sans seuil.
 - **`sexe_mf(sexe)`** : « M » / « F » quels que soient les codes.

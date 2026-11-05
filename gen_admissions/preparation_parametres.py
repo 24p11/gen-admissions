@@ -380,6 +380,18 @@ def effectifs_arrivees(v: pd.DataFrame, contexte: Sequence[str] | None = None) -
             .reindex(columns=contexte + COLONNES_PROFIL_ARRIVEES + ["n"]).fillna(""))
 
 
+def effectifs_profil_semaine(df: pd.DataFrame, dates: pd.Series,
+                             contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """Effectifs par jour de la semaine (1 = lundi … 7 = dimanche) × heure, en une
+    dimension ``semaine`` : la forme des profils d'entrées programmées et de
+    sorties (sur les mouvements) et de la composante semaine des arrivées.
+    ``dates`` : série de dates et heures alignée sur ``df``."""
+    d = pd.to_datetime(dates)
+    cles = avec_site(avec_saison([]), df, contexte)
+    t = df[cles].assign(dimension="semaine", jour_semaine=(d.dt.dayofweek + 1).values, heure=d.dt.hour.values)
+    return t.groupby(cles + ["dimension", "jour_semaine", "heure"]).size().reset_index(name="n")
+
+
 def effectifs_entrees_programmees(sejours: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Effectifs des entrées programmées (séjours non venus des urgences) par jour
     de la semaine (1 = lundi) et, si la date d'entrée porte une heure, par heure.
