@@ -140,7 +140,9 @@ def verifier_dossier(dossier, contexte):
         print(("ok        " if (dossier / nom).exists() else "MANQUANT  ") + nom)
 
 
-verifier_dossier(DOSSIER_SORTIE, SITE)
+# Les fichiers exportés décrivent un seul site et n'ont plus de colonne de site :
+# on vérifie donc sans contexte ([]), et non avec SITE qui sert aux calculs multi-sites.
+verifier_dossier(DOSSIER_SORTIE, [])
 '''
 
 
