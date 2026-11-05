@@ -731,9 +731,9 @@ def table_passage_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = 
 
 def passages_specialite(rum: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Une ligne par passage de spécialité (RUM consécutifs de même spécialité
-    fusionnés), avec sa durée en jours décimaux.
+    fusionnés), avec son séjour et sa durée en jours décimaux.
 
-    Colonnes attendues : ``id_sejour``, ``rang``, ``specialite`` (UHCD déjà
+    Entrée : les RUM (pas la sortie de cette fonction). Colonnes attendues : ``id_sejour``, ``rang``, ``specialite`` (UHCD déjà
     retirée), ``date_entree``, ``date_sortie`` (datetime), ``mode_entree``,
     ``classe_age``.
     """
@@ -742,10 +742,10 @@ def passages_specialite(rum: pd.DataFrame, contexte: Sequence[str] | None = None
         df[c] = pd.to_datetime(df[c])
     nouveau = ~(df["id_sejour"].eq(df["id_sejour"].shift()) & df["specialite"].eq(df["specialite"].shift()))
     df["id_passage"] = nouveau.cumsum()
-    premieres = {c: (c, "first") for c in avec_site(["specialite", "mode_entree", "classe_age"], df, contexte)}
+    premieres = {c: (c, "first") for c in avec_site(["id_sejour", "specialite", "mode_entree", "classe_age"], df, contexte)}
     p = df.groupby("id_passage").agg(**premieres, date_entree=("date_entree", "min"), date_sortie=("date_sortie", "max"))
     p["duree_j"] = (p["date_sortie"] - p["date_entree"]).dt.total_seconds() / 86400
-    return p[avec_site(["specialite", "mode_entree", "classe_age", "duree_j"], df, contexte)].reset_index(drop=True)
+    return p[avec_site(["id_sejour", "specialite", "mode_entree", "classe_age", "duree_j"], df, contexte)].reset_index(drop=True)
 
 
 def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
