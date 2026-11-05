@@ -502,6 +502,84 @@ def classe_tension(tension: pd.Series, bornes: pd.DataFrame) -> pd.Series:
 
 
 # ---------------------------------------------------------------------------
+# Durées de passage aux urgences (durees_passage_urgences.csv)
+# ---------------------------------------------------------------------------
+
+def classer_tension(tension: pd.DataFrame, bornes: pd.DataFrame,
+                    contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """Ajoute à la série quotidienne la colonne ``classe_tension``, site par site,
+    d'après la table de bornes (classes_tension)."""
+    cles = avec_site([], tension, contexte)
+    t = tension.copy()
+    t["date"] = pd.to_datetime(t["date"]).dt.normalize()
+    if not cles:
+        t["classe_tension"] = classe_tension(t["tension"], bornes)
+        return t
+    morceaux = []
+    for cle, part in t.groupby(cles):
+        cle = cle if isinstance(cle, tuple) else (cle,)
+        masque = np.logical_and.reduce([bornes[c] == v for c, v in zip(cles, cle)])
+        part = part.copy()
+        part["classe_tension"] = classe_tension(part["tension"], bornes[masque])
+        morceaux.append(part)
+    return pd.concat(morceaux, ignore_index=True)
+
+
+def effectifs_durees_urgences(v: pd.DataFrame, tension_classee: pd.DataFrame,
+                              premier_service_racine: pd.DataFrame | None = None,
+                              contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """Effectifs des venues par situation × gravité × classe d'âge × classe de
+    tension × tranche de durée.
+
+    ``v`` : les venues (colonnes de ``effectifs_venues`` plus ``date_sortie`` et,
+    pour le filtre de rang, ``premier_service``). ``tension_classee`` : la série
+    quotidienne avec ``classe_tension`` (``classer_tension``), jointe sur le
+    site et la date d'arrivée. ``premier_service_racine`` : si fournie, seules
+    les venues ``hospitalisation`` dont le premier service est de rang 1 sont
+    gardées (la redirection est décrite par ``supplement_rang2``). La gravité
+    n'est remplie que pour les situations sans séjour.
+    """
+    cles = avec_site([], v, contexte)
+    t = v.copy()
+    t["situation"] = situation_venue(t)
+    t = t[t["situation"].ne("inconnu")]
+    avec_sejour = t["situation"].isin(REGLAGES.situations_avec_sejour)
+    t["gravite"] = np.where(avec_sejour, "", gravite_ccmu(t["ccmu"]))
+    duree_h = (pd.to_datetime(t["date_sortie"]) - pd.to_datetime(t["date_entree"])).dt.total_seconds() / 3600
+    t = t[duree_h.ge(0)].copy()
+    t["tranche_h"] = tranche_heures(duree_h[duree_h.ge(0)])
+    t["date"] = pd.to_datetime(t["date_entree"]).dt.normalize()
+    t = t.merge(tension_classee[cles + ["date", "classe_tension"]], on=cles + ["date"], how="left")
+    sans_classe = t["classe_tension"].isna()
+    if sans_classe.any():
+        print(f"{sans_classe.mean():.1%} de venues sans classe de tension (jour absent de la série), exclues")
+        t = t[~sans_classe]
+    if premier_service_racine is not None:
+        rangs = premier_service_racine[premier_service_racine["classe_age"].astype(str) != ""]
+        rangs = rangs[avec_site(["racine_ghm", "classe_age", "specialite", "rang"], rangs, contexte)].rename(
+            columns={"specialite": "premier_service", "rang": "rang_premier"})
+        t["racine_ghm"] = t["ghm"].astype(str).str[:5]
+        t = t.merge(rangs, on=cles + ["racine_ghm", "classe_age", "premier_service"], how="left")
+        hosp = t["situation"].eq("hospitalisation")
+        exclus = hosp & t["rang_premier"].astype("Int64").ne(1)
+        print(f"{exclus.sum()} venues hospitalisées hors rang 1 écartées de la table des durées ({exclus.sum() / max(hosp.sum(), 1):.1%} des hospitalisées)")
+        t = t[~exclus]
+    return t.groupby(cles + ["situation", "gravite", "classe_age", "classe_tension", "tranche_h"]).size().reset_index(name="n")
+
+
+def durees_urgences_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
+                                     contexte: Sequence[str] | None = None) -> pd.DataFrame:
+    """durees_passage_urgences.csv : bloc situation × gravité × classe d'âge × classe de
+    tension ; replis sans la tension, puis sans la gravité. Pour les situations
+    avec séjour (gravité toujours vide), les deux replis coïncident : on dédoublonne."""
+    t = table_proportions(effectifs, ["situation", "gravite", "classe_age", "classe_tension"], ["tranche_h"],
+                          replis=[["situation", "gravite", "classe_age"], ["situation", "classe_age"]],
+                          seuil=seuil, contexte=contexte)
+    cles = [c for c in t.columns if c != "part"]
+    return t.drop_duplicates(subset=cles).reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
 # Premier service par racine (premier_service_racine.csv)
 # ---------------------------------------------------------------------------
 
@@ -639,9 +717,9 @@ def soins_critiques_depuis_effectifs(fin: pd.DataFrame, ghm: pd.DataFrame, racin
 # Contrôles
 # ---------------------------------------------------------------------------
 
-def verifier_table(t: pd.DataFrame, colonnes_bloc: Sequence[str]) -> None:
-    """Vérifie qu'une table de proportions somme à 1 dans chaque bloc."""
-    sommes = t.groupby(avec_site(colonnes_bloc, t))["part"].sum().round(4)
+def verifier_table(t: pd.DataFrame, colonnes_bloc: Sequence[str], contexte: Sequence[str] | None = None) -> None:
+    """Vérifie qu'une table de proportions somme à 1 dans chaque bloc (+ site)."""
+    sommes = t.groupby(avec_site(colonnes_bloc, t, contexte))["part"].sum().round(4)
     fautives = sommes[sommes != 1]
     if len(fautives):
         raise ValueError(f"{len(fautives)} blocs ne somment pas à 1 :\n{fautives.head()}")

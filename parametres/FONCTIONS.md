@@ -104,3 +104,15 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
   `classes_tension.csv`, bornes (terciles) par site, en nombre de patients.
 - **`classe_tension(tension, bornes)`** : classe (basse, moyenne, haute) d'une
   série de tensions d'après les bornes d'un site.
+
+## 9. Durées de passage aux urgences
+
+- **`classer_tension(tension, bornes, contexte=None)`** : ajoute `classe_tension`
+  à la série quotidienne, site par site.
+- **`effectifs_durees_urgences(v, tension_classee, premier_service_racine=None, contexte=None)`** :
+  venues → situation, gravité (sans séjour), tranche de durée, classe de tension
+  du jour d'arrivée (jointure sur site et date) ; si `premier_service_racine`
+  est fournie, ne garde pour `hospitalisation` que le rang 1 ; comptage par
+  situation × gravité × classe d'âge × classe de tension × tranche.
+- **`durees_urgences_depuis_effectifs(effectifs, seuil=None, contexte=None)`** :
+  `durees_passage_urgences.csv`, replis sans la tension puis sans la gravité.
