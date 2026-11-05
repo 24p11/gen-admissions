@@ -66,6 +66,83 @@ ANNEE_RECENTE = 2024                               # profils, durées, tension :
 connexion = None                                   # à remplacer par votre connexion à la base
 '''
 
+CELLULE_BILAN_MD = """## Bilan : les 22 fichiers attendus
+
+Quand toutes les cellules ont été exécutées, le dossier de sortie doit contenir
+les 22 fichiers du dictionnaire :
+
+| Groupe | Fichiers |
+| --- | --- |
+| Structure | `structure.yaml`, `specialites.csv`, `regroupements_ghm.csv` |
+| Par GHM | `niveaux.csv`, `durees_ghm.csv`, `soins_critiques_ghm.csv`, `sexe_racine.csv`, `sorties.csv` |
+| Pratiques | `premier_service_racine.csv`, `casemix.csv`, `table_passage.csv`, `durees_passage.csv` |
+| Urgences | `venues_urgences.csv`, `profil_arrivees_urgences.csv`, `profil_patients_urgences.csv`, `gravite_urgences.csv`, `classes_tension.csv`, `durees_passage_urgences.csv`, `supplement_rang2.csv` |
+| Programmé et sorties | `profil_entrees_programmees.csv`, `profil_sorties.csv` |
+| Contrôle | `cibles.csv` |
+
+La cellule suivante vérifie, pour chaque fichier, sa présence, ses colonnes et,
+pour les tables de proportions, que les parts somment à 1 dans chaque bloc
+(les lignes de repli, dont une colonne de bloc est vide, sont vérifiées à part,
+niveau par niveau).
+
+Ces fichiers ne contiennent que des proportions, mais ils décrivent un site
+réel : à garder hors du dépôt public tant que leur diffusion n'est pas décidée.
+"""
+
+CELLULE_BILAN_CODE = '''# Vérification du dossier de sortie : présence, colonnes, sommes à 1 par bloc
+from pathlib import Path
+
+# nom : (colonnes attendues, colonnes de bloc du niveau fin, colonnes qui sont vides sur les lignes de repli)
+ATTENDUS = {
+    "niveaux": (["racine_ghm", "classe_age", "niveau", "part"], ["racine_ghm", "classe_age"], ["classe_age"]),
+    "durees_ghm": (["ghm", "classe_age_duree", "duree_j", "part"], ["ghm", "classe_age_duree"], ["classe_age_duree"]),
+    "sexe_racine": (["racine_ghm", "sexe", "part"], ["racine_ghm"], []),
+    "sorties": (["racine_ghm", "niveau", "classe_age", "mode_sortie", "part"], ["racine_ghm", "niveau", "classe_age"], ["niveau", "classe_age"]),
+    "premier_service_racine": (["racine_ghm", "classe_age", "specialite", "part", "rang"], ["racine_ghm", "classe_age"], ["classe_age"]),
+    "casemix": (["specialite", "classe_age", "racine_ghm", "part"], ["specialite"], []),
+    "table_passage": (["niveau", "service", "precedent", "classe_age", "mode_entree", "suite", "part", "rang"],
+                      ["niveau", "service", "precedent", "classe_age", "mode_entree"], ["precedent", "classe_age", "mode_entree"]),
+    "venues_urgences": (["saison", "periode", "classe_age", "situation", "gravite", "racine_ghm", "part"], ["saison", "periode", "classe_age"], ["periode"]),
+    "gravite_urgences": (["classe_age", "situation", "tranche_h", "gravite", "part"], ["classe_age", "situation", "tranche_h"], ["tranche_h"]),
+    "durees_passage_urgences": (["situation", "gravite", "classe_age", "classe_tension", "tranche_h", "part"],
+                                ["situation", "gravite", "classe_age", "classe_tension"], ["classe_tension", "gravite"]),
+    "supplement_rang2": (["classe_tension", "tranche_h", "part"], ["classe_tension"], ["classe_tension"]),
+    "profil_patients_urgences": (["classe_age", "sexe", "part"], [], []),
+    "profil_arrivees_urgences": (["saison", "dimension", "jour_semaine", "heure", "mois", "part"], ["saison", "dimension"], []),
+    "profil_entrees_programmees": (["dimension", "jour_semaine", "heure", "part"], ["dimension"], []),
+    "profil_sorties": (["dimension", "jour_semaine", "heure", "part"], ["dimension"], []),
+}
+AUTRES = ["structure.yaml", "specialites.csv", "regroupements_ghm.csv", "soins_critiques_ghm.csv",
+          "durees_passage.csv", "classes_tension.csv", "cibles.csv"]
+
+
+def verifier_dossier(dossier, contexte):
+    dossier = Path(dossier)
+    for nom, (colonnes, bloc, replis) in ATTENDUS.items():
+        f = dossier / f"{nom}.csv"
+        if not f.exists():
+            print(f"MANQUANT  {nom}"); continue
+        t = pd.read_csv(f, dtype=str, keep_default_na=False)
+        t["part"] = t["part"].astype(float)
+        manquantes = [c for c in colonnes if c not in t.columns]
+        if manquantes:
+            print(f"COLONNES  {nom} : manque {manquantes}"); continue
+        # le niveau fin : aucune colonne de bloc vide ; chaque niveau de repli : vérifié avec ses colonnes non vides
+        vides = (t[replis] == "").any(axis=1) if replis else pd.Series(False, index=t.index)
+        try:
+            verifier_table(t[~vides], bloc, contexte=contexte)
+            for _, part in t[vides].groupby([t.loc[vides, c] == "" for c in replis]) if vides.any() else []:
+                verifier_table(part, [c for c in bloc if (part[c] != "").all()], contexte=contexte)
+            print(f"ok        {nom} ({len(t)} lignes)")
+        except ValueError as e:
+            print(f"SOMMES    {nom} : {str(e).splitlines()[0]}")
+    for nom in AUTRES:
+        print(("ok        " if (dossier / nom).exists() else "MANQUANT  ") + nom)
+
+
+verifier_dossier(DOSSIER_SORTIE, SITE)
+'''
+
 
 def decouper(texte: str) -> tuple[list[str], list[tuple[int, str, list[str]]]]:
     """Sépare l'introduction des blocs (niveau de titre, titre, lignes du corps)."""
@@ -131,6 +208,8 @@ def main() -> None:
                 f'<a id="{ancre(titre_bloc)}"></a>\n\n### {titre_bloc}\n\n{corps(lignes)}\n\n[↑ récapitulatif](#recap)'))
             nb.cells.append(new_code_cell(f"# {titre_bloc}\n"))
 
+    nb.cells.append(new_markdown_cell(CELLULE_BILAN_MD))
+    nb.cells.append(new_code_cell(CELLULE_BILAN_CODE))
     nbformat.write(nb, SORTIE)
     print(len(nb.cells), "cellules ->", SORTIE)
 
