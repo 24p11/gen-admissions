@@ -17,6 +17,7 @@ diffusés.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Iterable, Sequence
 
 import numpy as np
@@ -114,9 +115,14 @@ def avec_site(colonnes: Sequence[str], df: pd.DataFrame | None = None,
     return [*cols_site, *colonnes]
 
 
-def avec_saison(colonnes: Sequence[str]) -> list[str]:
-    """Colonnes de bloc complétées par les colonnes de saison (tables saisonnières seulement)."""
-    return [*REGLAGES.colonnes_saison, *colonnes]
+def avec_saison(colonnes: Sequence[str], df: pd.DataFrame | None = None) -> list[str]:
+    """Colonnes de bloc complétées par les colonnes de saison (tables saisonnières seulement).
+    Avec ``df`` : seulement les colonnes de saison présentes dans le tableau (un
+    profil d'entrées programmées ou de sorties n'a pas de saison)."""
+    cols = list(REGLAGES.colonnes_saison)
+    if df is not None:
+        cols = [c for c in cols if c in df.columns]
+    return [*cols, *colonnes]
 
 
 def saisons_completes(annees: Iterable[int]) -> list[str]:
@@ -248,6 +254,35 @@ def additionner(effectifs_par_annee: Iterable[pd.DataFrame], colonnes: Sequence[
 
 
 # ---------------------------------------------------------------------------
+# Mémorisation des résultats de requête (fichiers parquet)
+# ---------------------------------------------------------------------------
+
+def memoriser(nom: str, calcul, dossier: str | Path = "data", forcer: bool = False) -> pd.DataFrame:
+    """Résultat de ``calcul()`` (un DataFrame), lu dans ``dossier/nom.parquet`` si ce
+    fichier existe, sinon calculé puis enregistré là. ``forcer=True`` recalcule
+    même si le fichier existe (après un changement de requête, par exemple).
+
+    Sert à ne pas relancer les requêtes longues à chaque ouverture du notebook :
+        v = memoriser("venues_25", lambda: con.read_sql(requete), DOSSIER_DATA)
+    """
+    chemin = Path(dossier) / f"{nom}.parquet"
+    if chemin.exists() and not forcer:
+        df = pd.read_parquet(chemin)
+        print(f"{nom} : {len(df)} lignes lues dans {chemin}")
+        return df
+    df = calcul()
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(chemin, index=False)
+    print(f"{nom} : {len(df)} lignes calculées et enregistrées dans {chemin}")
+    return df
+
+
+def lire_sql(nom: str, requete: str, connexion, dossier: str | Path = "data", forcer: bool = False) -> pd.DataFrame:
+    """``connexion.read_sql(requete)`` mémorisé dans ``dossier/nom.parquet`` (voir ``memoriser``)."""
+    return memoriser(nom, lambda: connexion.read_sql(requete), dossier, forcer)
+
+
+# ---------------------------------------------------------------------------
 # Structure
 # ---------------------------------------------------------------------------
 
@@ -356,7 +391,7 @@ def effectifs_profil(df: pd.DataFrame, dimensions: dict[str, pd.Series],
     morceaux = []
     for dimension, valeur in dimensions.items():
         t = df.assign(dimension=dimension, valeur=np.asarray(valeur))
-        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"]), t, contexte)).size().reset_index(name="n"))
+        morceaux.append(t.groupby(avec_site(avec_saison(["dimension", "valeur"], t), t, contexte)).size().reset_index(name="n"))
     return pd.concat(morceaux, ignore_index=True)
 
 
@@ -368,7 +403,7 @@ def effectifs_arrivees(v: pd.DataFrame, contexte: Sequence[str] | None = None) -
     (jour de la semaine × heure, 1 = lundi … 7 = dimanche) et ``mois``.
     Colonne attendue : ``date_entree`` (date et heure)."""
     d = pd.to_datetime(v["date_entree"])
-    contexte = avec_site(avec_saison([]), v, contexte)
+    contexte = avec_site(avec_saison([], v), v, contexte)
     base = v[contexte].copy()
     semaine = base.assign(dimension="semaine", jour_semaine=(d.dt.dayofweek + 1).values, heure=d.dt.hour.values)
     mois = base.assign(dimension="mois", mois=d.dt.month.values)
@@ -387,7 +422,7 @@ def effectifs_profil_semaine(df: pd.DataFrame, dates: pd.Series,
     sorties (sur les mouvements) et de la composante semaine des arrivées.
     ``dates`` : série de dates et heures alignée sur ``df``."""
     d = pd.to_datetime(dates)
-    cles = avec_site(avec_saison([]), df, contexte)
+    cles = avec_site(avec_saison([], df), df, contexte)
     t = df[cles].assign(dimension="semaine", jour_semaine=(d.dt.dayofweek + 1).values, heure=d.dt.hour.values)
     return t.groupby(cles + ["dimension", "jour_semaine", "heure"]).size().reset_index(name="n")
 
@@ -406,7 +441,7 @@ def effectifs_entrees_programmees(sejours: pd.DataFrame, contexte: Sequence[str]
 def profil_depuis_effectifs(effectifs: pd.DataFrame, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """Parts par dimension (elles somment à 1 dans chaque dimension), sans seuil."""
     t = effectifs.copy()
-    cles = avec_site(avec_saison(["dimension"]), t, contexte)
+    cles = avec_site(avec_saison(["dimension"], t), t, contexte)
     t["part"] = (t["n"] / t.groupby(cles)["n"].transform("sum")).round(6)
     tri = cles + [c for c in ("valeur", "jour_semaine", "heure", "mois") if c in t.columns]
     return t.drop(columns="n").sort_values(tri).reset_index(drop=True)
@@ -566,6 +601,11 @@ def _venues_preparees(v: pd.DataFrame, tension_classee: pd.DataFrame,
     t = t[t["situation"].ne("inconnu")]
     avec_sejour = t["situation"].isin(REGLAGES.situations_avec_sejour)
     t["gravite"] = np.where(avec_sejour, "", gravite_ccmu(t["ccmu"]))
+    ccmu_inconnue = ~avec_sejour & t["gravite"].eq("")      # gravité vide = ligne de repli : on ne peut pas garder ces venues ici
+    if ccmu_inconnue.any():
+        print(f"{ccmu_inconnue.sum()} venues non hospitalisées sans CCMU ({ccmu_inconnue.mean():.1%}), "
+              "écartées du calcul des durées de passage")
+        t = t[~ccmu_inconnue]
     t["duree_h"] = (pd.to_datetime(t["date_sortie"]) - pd.to_datetime(t["date_entree"])).dt.total_seconds() / 3600
     t = t[t["duree_h"].ge(0)].copy()
     t["tranche_h"] = tranche_heures(t["duree_h"])

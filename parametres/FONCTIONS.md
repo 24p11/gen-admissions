@@ -133,3 +133,15 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
 
 - **`cible(indicateur, observe, tolerance=0.10, absolue=False, service="", classe_tension="", **contexte)`** :
   une ligne de `cibles.csv` (observé, min, max), tolérance relative ou absolue.
+
+## 12. Mémorisation des requêtes longues
+
+- **`memoriser(nom, calcul, dossier="data", forcer=False)`** : renvoie le tableau
+  lu dans `dossier/nom.parquet` s'il existe ; sinon appelle `calcul()` (une
+  fonction sans argument qui renvoie un DataFrame), enregistre le résultat
+  dans ce fichier et le renvoie. `forcer=True` recalcule même si le fichier
+  existe (à utiliser après avoir changé une requête). Le dossier `data` d'un
+  dossier de travail ignoré par git garde ainsi les extractions entre deux
+  sessions.
+- **`lire_sql(nom, requete, connexion, dossier="data", forcer=False)`** :
+  `memoriser` appliqué à `connexion.read_sql(requete)`.
