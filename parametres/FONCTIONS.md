@@ -116,3 +116,13 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
   situation × gravité × classe d'âge × classe de tension × tranche.
 - **`durees_urgences_depuis_effectifs(effectifs, seuil=None, contexte=None)`** :
   `durees_passage_urgences.csv`, replis sans la tension puis sans la gravité.
+
+## 10. Supplément de rang 2
+
+- **`effectifs_supplement_rang2(v, tension_classee, premier_service_racine, contexte=None)`** :
+  hospitalisés de rang 2 : supplément = durée − médiane des rang 1 de la même
+  case (site, classe d'âge, classe de tension), négatifs à zéro, en tranches ;
+  comptage par classe de tension × tranche.
+- **`supplement_depuis_effectifs(effectifs, seuil=None, contexte=None)`** :
+  `supplement_rang2.csv`, bloc classe de tension, repli sur l'ensemble.
+- `normaliser` accepte désormais un bloc vide (`[]`) : les parts somment à 1 sur l'ensemble.
