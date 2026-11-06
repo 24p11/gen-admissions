@@ -24,15 +24,17 @@ colonne `part`. Les parts somment à 1 à l'intérieur d'un *bloc* (par exemple
 « pour un mois et une classe d'âge donnés »). Le bloc est indiqué pour chaque
 fichier. Aucun fichier ne contient de nombre de séjours ou de patients.
 
-**Seuil d'effectif et catégories rares.** Lors du calcul sur des données
-réelles, une case (une ligne) n'est retenue telle quelle que si elle repose sur
-au moins `seuil_effectif` séjours (100 séjours sur 5 ans par défaut). Les cases
-sous le seuil d'un même bloc ne sont pas supprimées : on calcule leur masse
-totale (la somme de leurs effectifs divisée par l'effectif du bloc), puis on la
-répartit **uniformément** entre elles. Le volume des cas rares est ainsi
-conservé, sans qu'aucune proportion individuelle sous le seuil ne soit
-transmise. Dans les tables de services qui portent une colonne `rang`, ces
-lignes complétées reçoivent le rang 3.
+**Deux seuils : fiabilité d'un bloc, lissage des parts.** Lors du calcul sur
+des données réelles, un bloc n'est écrit que s'il repose sur au moins
+`seuil_effectif` séjours (25 par défaut, sur la période d'observation) ; en
+dessous, le bloc est absent du fichier et le simulateur utilise son repli
+(voir ci-dessous). À l'intérieur d'un bloc écrit, les lignes de moins de
+`seuil_lissage` séjours (20 par défaut) ne sont pas supprimées : on calcule
+leur masse totale (la somme de leurs effectifs divisée par l'effectif du
+bloc), puis on la répartit **uniformément** entre elles. Le volume des cas
+rares est ainsi conservé, sans qu'aucune proportion individuelle très petite
+ne soit transmise. Le lissage n'a aucun effet sur le `rang` des tables de
+services, qui ne dépend que de la part.
 
 **Repli.** Quand une case n'existe pas (combinaison jamais observée), le
 simulateur utilise une table plus générale, indiquée dans la colonne
@@ -63,17 +65,22 @@ Les bornes sont des âges révolus à l'entrée.
 | `classe_tension` | `basse`, `moyenne`, `haute` | voir `classes_tension.csv` |
 | `tranche_h` | `0-1`, `1-2`, `2-4`, `4-6`, `6-12`, `12-24`, `24+` | tranches de durée en heures, borne basse incluse |
 | `duree_j` | `0` à `60`, puis `60+` | durée de séjour en jours entiers (date de sortie moins date d'entrée) |
-| `rang` | `1`, `2`, `3` | 1 service habituel (part ≥ 10 %) ; 2 service exceptionnel (observé au-dessus du seuil d'effectif, part < 10 %) ; 3 service complété par la règle des catégories rares (effectif sous le seuil). Le rang croît avec la rareté : plus petit = mobilisé en premier |
+| `rang` | `1`, `2` | 1 service habituel (part ≥ 10 %) ; 2 service exceptionnel (part < 10 %). Toute ligne présente a été observée. Plus petit = mobilisé en premier |
 
 **Périmètre de calcul.** L'hôpital simulé est un site ; tout ce qui dépend
 de son organisation se calcule sur ce site seul : `venues_urgences`,
 `durees_passage_urgences`, `supplement_rang2`, `classes_tension`,
 `gravite_urgences`, les profils (arrivées, patients, entrées programmées,
-sorties) et `structure.yaml`. Les tables qui décrivent des pratiques
-médicales et demandent des effectifs importants (`premier_service_racine`,
-`table_passage`, `casemix`, `durees_passage`) se calculent sur le site s'il
-est assez grand, sinon sur plusieurs sites partageant la même nomenclature
-de spécialités. Les tables par GHM (`niveaux`, `durees_ghm`,
+sorties) et `structure.yaml`, ainsi que `casemix` et `durees_passage`. Les
+deux tables de pratiques dont les blocs sont fins (`premier_service_racine`,
+`table_passage`) se calculent sur **l'ensemble des sites** partageant la même
+nomenclature de spécialités : un seul site ne donne pas d'effectifs
+suffisants par racine × classe d'âge. Au chargement, le simulateur les
+restreint aux services présents dans `structure.yaml`, renormalise les parts
+dans chaque bloc et **recalcule les rangs** sur les parts restreintes (un
+service exceptionnel ailleurs peut être la filière habituelle d'un hôpital
+qui n'a pas la spécialité principale) ; un bloc où aucun service ne subsiste
+conduit au transfert. Les tables par GHM (`niveaux`, `durees_ghm`,
 `soins_critiques_ghm`, `sexe_racine`, `sorties`) peuvent venir d'une base
 nationale.
 
@@ -405,7 +412,7 @@ passages en UHCD ont été retirés.
 | `classe_age` | 0-17, 18-64, 65-74, 75+ |
 | `specialite` | une spécialité (hors UHCD) |
 | `part` | proportion |
-| `rang` | 1, 2 ou 3 |
+| `rang` | 1 ou 2 |
 
 Bloc : `racine_ghm × classe_age`. Repli : `racine_ghm` seule.
 
@@ -418,19 +425,20 @@ correspondance unités → spécialités utilise les mêmes codes
 (`specialites.csv`) sur tous les sites agrégés. Pour chaque séjour, le
 premier service est la spécialité du premier RUM *autre que l'UHCD* ; les
 séjours limités à l'UHCD sont exclus (situation `mono_uhcd` de `venues_urgences.csv`).
-Pour chaque racine et classe d'âge, compter par premier service ; seuil et
-catégories rares ; normaliser. Puis attribuer le rang : 1 si la part est au
-moins `part_min_service_habituel` (0,10 par défaut) ; 2 si la ligne a été
-observée au-dessus du seuil d'effectif mais que sa part est inférieure ; 3 si
-la ligne vient de la répartition uniforme des catégories rares.
+Pour chaque racine et classe d'âge, compter par premier service ; blocs de
+moins de `seuil_effectif` séjours non écrits, lissage des petites lignes ;
+normaliser. Puis attribuer le rang : 1 si la part est au moins
+`part_min_service_habituel` (0,10 par défaut), 2 sinon.
 
-**Usage.** Au chargement, le simulateur restreint chaque bloc aux
-spécialités présentes dans la structure et renormalise ; s'il ne reste aucun
-service de rang 1 ni de rang 2 pour une racine, les patients de cette racine
-venus des urgences sont transférés (l'hôpital n'a pas l'activité). Le
-service prévu est ensuite tiré sur la distribution restreinte. En cas de
-lits manquants, la redirection ne considère que les lignes de rang 1, puis
-de rang 2, jamais celles de rang 3 (règle D).
+**Usage.** Au chargement, le simulateur cherche le bloc (racine, classe
+d'âge), ou à défaut la ligne de repli (racine seule) ; il restreint le bloc
+aux spécialités présentes dans la structure, renormalise et recalcule les
+rangs sur les parts restreintes ; s'il ne reste aucun service pour une
+racine, les patients de cette racine venus des urgences sont transférés
+(l'hôpital n'a pas l'activité). Le service prévu est ensuite tiré sur la
+distribution restreinte. En cas de lits manquants, la redirection considère
+les lignes de rang 1 tout de suite, puis celles de rang 2 après le
+supplément d'attente (règle D).
 
 ### `casemix.csv` — quels patients en entrée programmée (B3)
 
@@ -460,7 +468,7 @@ couple (classe d'âge, racine) ; seuil et catégories rares ; normaliser.
 | `mode_entree` | urgences, programme (vide au niveau `service`) |
 | `suite` | spécialité suivante, ou `sortie` |
 | `part` | proportion |
-| `rang` | 1, 2 ou 3 (pour les lignes dont `suite` est une spécialité) |
+| `rang` | 1 ou 2 (pour les lignes dont `suite` est une spécialité) |
 
 Bloc : au niveau `complet`, `service × precedent × classe_age × mode_entree` ;
 au niveau `service`, le service seul. Repli : le niveau `service`, pour une
@@ -472,13 +480,16 @@ où il est et celui d'où il vient, jusqu'à tirer `sortie`. Il n'y a pas de
 catalogue de parcours complets dans cette version (voir la spécification,
 pistes remises à plus tard).
 
-**Calcul.** Sur tous les séjours. Pour chaque séjour, la suite des
+**Calcul.** Sur tous les séjours de tous les sites (voir « Périmètre de
+calcul » ; au chargement, la colonne `suite` est restreinte aux services de
+la structure comme pour `premier_service_racine`). Pour chaque séjour, la suite des
 spécialités de ses RUM (UHCD retirée), en fusionnant les RUM consécutifs de
 même spécialité ; chaque étape donne une observation : (service, précédent,
 classe d'âge, mode d'entrée) → suite, la dernière étape ayant pour suite
-`sortie`. Compter par bloc aux deux niveaux, seuil et catégories rares,
-normaliser. Le rang se calcule comme dans `premier_service_racine.csv`, par
-bloc, sur les lignes dont la suite est une spécialité.
+`sortie`. Compter par bloc aux deux niveaux, blocs sous le seuil non écrits,
+lissage, normaliser. Le rang se calcule comme dans
+`premier_service_racine.csv`, par bloc, sur les lignes dont la suite est une
+spécialité.
 
 ### `durees_passage.csv` — combien de temps dans chaque spécialité (B1, C6)
 

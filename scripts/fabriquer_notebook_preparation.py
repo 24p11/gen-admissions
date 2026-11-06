@@ -42,13 +42,17 @@ import numpy as np
 #     tp = table_passage_depuis_effectifs(effectifs, contexte=SITE, seuil=SEUIL, part_min=PART_MIN)
 # `contexte` est la liste des colonnes placées en tête de tous les blocs de normalisation (le site) ;
 # sans `contexte`, la colonne de site de configurer() est utilisée si elle est présente dans le tableau.
-SEUIL = 100                          # séjours, sur la période d'observation
-PART_MIN = 0.10                      # part à partir de laquelle un service est de rang 1
+SEUIL = 25                           # fiabilité d'un bloc : en dessous, le bloc n'est pas écrit et le repli sert
+SEUIL_LISSAGE = 20                   # lissage des parts : les lignes de moins de n séjours mettent leur masse en commun
+PART_MIN = 0.10                      # part à partir de laquelle un service est de rang 1 (rang 2 sinon)
 SITE = ["nohop"]                     # colonne(s) de site ; [] pour un calcul sans site
+# Les tables de pratiques (premier_service_racine, table_passage) se calculent sur tous les sites (contexte=[]) :
+# le simulateur les restreint aux services de l'hôpital et recalcule les rangs au chargement.
 
 # Réglages de structure (classes, saisons, listes de colonnes), lus par toutes les fonctions :
 configurer(
     seuil_effectif=SEUIL,                # valeur par défaut si un appel ne précise pas seuil=
+    seuil_lissage=SEUIL_LISSAGE,
     part_min_service_habituel=PART_MIN,  # idem pour part_min=
     colonnes_site=tuple(SITE),           # défaut des appels sans contexte=, quand la colonne est présente dans le tableau
     bornes_age=(17, 64, 74),             # 0-17, 18-64, 65-74, 75+

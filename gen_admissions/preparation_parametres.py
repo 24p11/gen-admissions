@@ -37,7 +37,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Reglages:
-    seuil_effectif: int = 100               # séjours, sur la période d'observation (5 ans)
+    seuil_effectif: int = 25                # fiabilité d'un bloc : en dessous, le bloc n'est pas écrit (le repli sert)
+    seuil_lissage: int = 20                 # lissage des parts : les lignes de moins de n séjours mettent leur masse en commun
     part_min_service_habituel: float = 0.10 # part à partir de laquelle un service est de rang 1
     bornes_age: tuple = (17, 64, 74)        # âges révolus de fin des trois premières classes
     bornes_age_duree: tuple = (59,)         # idem pour les tables par GHM complet
@@ -167,16 +168,22 @@ def tranche_heures(duree_h: pd.Series) -> pd.Series:
 # ---------------------------------------------------------------------------
 
 def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categorie: Sequence[str] | None = None,
-               colonne_effectif: str = "n", seuil: int | None = None,
-               contexte: Sequence[str] | None = None) -> pd.DataFrame:
+               colonne_effectif: str = "n", seuil: int | None = None, contexte: Sequence[str] | None = None,
+               seuil_lissage: int | None = None) -> pd.DataFrame:
     """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
 
     Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
     leur masse totale divisée par leur nombre : le volume des cas rares est
     conservé sans qu'aucune proportion individuelle sous le seuil ne soit
     transmise. Renvoie les colonnes du bloc, les colonnes de catégorie,
-    ``part`` et ``observe`` (True si la ligne était au-dessus du seuil).
-    ``observe`` sert au calcul du rang et ne doit pas être écrite dans les
+    ``part`` et ``observe`` (True si la ligne n'a pas été lissée).
+
+    Deux seuils. ``seuil`` (REGLAGES.seuil_effectif) juge la fiabilité du
+    **bloc** : un bloc de moins de ``seuil`` séjours n'est pas écrit, le
+    simulateur utilisera son repli. ``seuil_lissage`` (REGLAGES.seuil_lissage)
+    lisse les **parts** à l'intérieur d'un bloc gardé : les lignes de moins de
+    ``seuil_lissage`` séjours mettent leur masse en commun et la partagent à
+    égalité. ``observe`` ne doit pas être écrite dans les
     fichiers. ``colonnes_categorie`` : ce qui est tiré ; si elle est donnée, la
     sortie se limite à bloc + catégories + part + observe, dans cet ordre ;
     sinon toute colonne qui n'est ni le bloc ni l'effectif est une catégorie.
@@ -185,6 +192,7 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categori
     celles de REGLAGES présentes dans ``df``.
     """
     seuil = REGLAGES.seuil_effectif if seuil is None else seuil
+    seuil_lissage = REGLAGES.seuil_lissage if seuil_lissage is None else seuil_lissage
     df = df.copy()
     colonnes_bloc = avec_site(colonnes_bloc, df, contexte)
     bloc_vide = not colonnes_bloc                 # bloc vide : les parts somment à 1 sur l'ensemble
@@ -196,7 +204,10 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categori
         df = df.groupby(colonnes_bloc + list(colonnes_categorie), as_index=False)[colonne_effectif].sum()
     cles = [df[c] for c in colonnes_bloc]
     total = df.groupby(cles)[colonne_effectif].transform("sum")
-    rare = df[colonne_effectif] < seuil
+    fiable = total >= seuil                       # fiabilité du bloc : les blocs trop petits sortent de la table
+    df, total = df[fiable], total[fiable]
+    cles = [df[c] for c in colonnes_bloc]
+    rare = df[colonne_effectif] < seuil_lissage   # lissage des parts, ligne par ligne, dans les blocs gardés
     df["observe"] = ~rare
     masse_rare = df[colonne_effectif].where(rare, 0).groupby(cles).transform("sum")
     nb_rare = rare.groupby(cles).transform("sum")
@@ -208,8 +219,8 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categori
 
 def attribuer_rang(t: pd.DataFrame, part_min: float | None = None,
                    masque: pd.Series | None = None) -> pd.Series:
-    """Rang des services : 1 habituel (part >= part_min), 2 exceptionnel (observé
-    mais sous part_min), 3 complété par la règle des catégories rares.
+    """Rang des services : 1 habituel (part >= part_min), 2 exceptionnel (part
+    sous part_min). Toute ligne présente a été observée : il n'y a pas de rang 3.
 
     ``masque`` : lignes auxquelles le rang s'applique (les autres reçoivent une
     case vide), par exemple les suites qui sont des services et non « sortie ».
@@ -217,8 +228,23 @@ def attribuer_rang(t: pd.DataFrame, part_min: float | None = None,
     part_min = REGLAGES.part_min_service_habituel if part_min is None else part_min
     if masque is None:
         masque = pd.Series(True, index=t.index)
-    rang = np.select([~masque, ~t["observe"], t["part"] >= part_min], [np.nan, 3, 1], default=2)
+    rang = np.select([~masque, t["part"] >= part_min], [np.nan, 1], default=2)
     return pd.Series(rang, index=t.index).astype("Int64")
+
+
+def restreindre_services(table: pd.DataFrame, services: Iterable[str], colonnes_bloc: Sequence[str],
+                         colonne_service: str = "specialite", part_min: float | None = None) -> pd.DataFrame:
+    """Ce que fait le simulateur au chargement d'une table de pratiques calculée
+    sur plusieurs sites : ne garder que les services présents dans l'hôpital,
+    renormaliser les parts dans chaque bloc et recalculer les rangs (un service
+    exceptionnel ailleurs peut être le service habituel d'un hôpital qui n'a pas
+    la spécialité principale). Les blocs où aucun service ne subsiste disparaissent
+    (les patients concernés sont transférés, règle D)."""
+    t = table[table[colonne_service].isin(set(services))].copy()
+    cles = [t[c].astype(str) for c in colonnes_bloc]
+    t["part"] = t["part"] / t.groupby(cles)["part"].transform("sum")
+    t["rang"] = attribuer_rang(t, part_min=part_min)
+    return t
 
 
 def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
@@ -621,24 +647,36 @@ def _venues_preparees(v: pd.DataFrame, tension_classee: pd.DataFrame,
         if "premier_service" not in t.columns:
             raise KeyError("la colonne premier_service manque dans les venues ; ajoutez la spécialité du premier "
                            "RUM hors UHCD du séjour chaîné (jointure sur le numéro de séjour)")
-        colonnes_rang = avec_site(["racine_ghm", "classe_age", "specialite", "rang"], premier_service_racine, contexte)
-        rangs = premier_service_racine[colonnes_rang].rename(columns={"specialite": "premier_service", "rang": "rang_premier"})
-        rangs["classe_age"] = rangs["classe_age"].astype(str)
-        fins = rangs[rangs["classe_age"] != ""]
-        replis = rangs[rangs["classe_age"] == ""].drop(columns="classe_age").rename(columns={"rang_premier": "rang_repli"})
         t["racine_ghm"] = t["ghm"].astype(str).str[:5]
-        # 1. le rang au niveau fin (racine × classe d'âge)
-        t = t.merge(fins, on=cles + ["racine_ghm", "classe_age", "premier_service"], how="left")
-        # 2. un rang 3 signale un bloc complété par la règle des catégories rares (moins de `seuil` séjours) :
-        #    le rang est alors celui de la ligne de repli par racine seule, comme le fera le simulateur
-        t = t.merge(replis, on=cles + ["racine_ghm", "premier_service"], how="left")
-        complete = t["rang_premier"].isna() | t["rang_premier"].eq(3)
-        t["rang_premier"] = t["rang_premier"].where(~complete, t["rang_repli"]).astype("Int64")
+        t["_rang_fin"] = pd.array([pd.NA] * len(t), dtype="Int64")
+        t["_rang_repli"] = pd.array([pd.NA] * len(t), dtype="Int64")
         hosp = t["situation"].eq("hospitalisation")
-        if (complete & hosp).any():
-            print(f"{(complete & hosp).sum()} venues hospitalisées ({(complete & hosp).sum() / hosp.sum():.1%}) dans un bloc "
-                  "racine × âge complété : rang pris sur le repli par racine")
-        t = t.drop(columns="rang_repli")
+        ps = premier_service_racine.copy()
+        ps["classe_age"] = ps["classe_age"].astype(str)
+        groupes = t.groupby(cles) if cles else [((), t)]
+        for cle, part in groupes:
+            cle = cle if isinstance(cle, tuple) else (cle,)
+            if cles and all(c in ps.columns for c in cles):      # table déjà calculée par site : rien à restreindre
+                table_site = ps[np.logical_and.reduce([ps[c] == v for c, v in zip(cles, cle)])]
+            else:
+                # table multi-sites : restreinte aux services de ce site, comme le fera le simulateur avec
+                # structure.yaml (ici, les services observés comme premier service sur le site)
+                services = part.loc[hosp[part.index], "premier_service"].dropna().unique()
+                table_site = restreindre_services(ps, services, ["racine_ghm", "classe_age"])
+            for niveau, colonne in (("fin", "_rang_fin"), ("repli", "_rang_repli")):
+                r = table_site[table_site["classe_age"].ne("") if niveau == "fin" else table_site["classe_age"].eq("")]
+                cles_niveau = ["racine_ghm", "premier_service"] + (["classe_age"] if niveau == "fin" else [])
+                r = r.rename(columns={"specialite": "premier_service"})[cles_niveau + ["rang"]].drop_duplicates(cles_niveau)
+                m = part[cles_niveau].merge(r, on=cles_niveau, how="left")
+                t.loc[part.index, colonne] = m["rang"].to_numpy()
+        # le niveau fin quand il existe (bloc fiable), sinon le repli par racine seule
+        t["rang_premier"] = t["_rang_fin"].where(t["_rang_fin"].notna(), t["_rang_repli"]).astype("Int64")
+        repli = hosp & t["_rang_fin"].isna()
+        if hosp.any():
+            print(f"{repli.sum()} venues hospitalisées ({repli.sum() / hosp.sum():.1%}) sans bloc racine × âge fiable : "
+                  "rang pris sur le repli par racine ; rangs du premier service :",
+                  {("sans rang" if pd.isna(k) else int(k)): int(n) for k, n in t.loc[hosp, "rang_premier"].value_counts(dropna=False).items()})
+        t = t.drop(columns=["_rang_fin", "_rang_repli"])
     return t, cles
 
 

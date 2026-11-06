@@ -7,7 +7,7 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
 
 ## 1. Réglages et classes
 
-- **`REGLAGES`** : valeurs par défaut. Champs : `seuil_effectif` (100),
+- **`REGLAGES`** : valeurs par défaut. Champs : `seuil_effectif` (25, fiabilité d'un bloc), `seuil_lissage` (20, lissage des parts),
   `part_min_service_habituel` (0,10), `bornes_age` (17, 64, 74),
   `bornes_age_duree` (59,), `bornes_tranches_h` (1, 2, 4, 6, 12, 24),
   `colonnes_site`, `colonnes_saison`, `mois_debut_saison` (9), et les listes de
@@ -29,12 +29,20 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
 
 ## 2. Socle : normalisation, rang, repli
 
-- **`normaliser(df, colonnes_bloc, colonne_effectif="n", seuil=None, contexte=None)`** :
-  effectifs → parts par bloc, règle des catégories rares (masse des lignes
-  sous le seuil répartie uniformément entre elles). Renvoie bloc, catégories,
-  `part`, `observe`.
+- **`normaliser(df, colonnes_bloc, colonnes_categorie=None, colonne_effectif="n", seuil=None, contexte=None, seuil_lissage=None)`** :
+  effectifs → parts par bloc. Les blocs de moins de `seuil` séjours ne sont
+  pas écrits (le repli servira) ; dans les blocs gardés, les lignes de moins de
+  `seuil_lissage` séjours mettent leur masse en commun et la partagent à
+  égalité. Renvoie bloc, catégories, `part`, `observe` (ligne non lissée).
 - **`attribuer_rang(t, part_min=None, masque=None)`** : rang 1 (part ≥ part_min),
-  2 (observée, sous part_min), 3 (complétée). `masque` : lignes concernées.
+  2 sinon ; il n'y a plus de rang 3. `masque` : lignes concernées.
+- **`restreindre_services(table, services, colonnes_bloc, colonne_service="specialite", part_min=None)`** :
+  ce que fait le simulateur au chargement d'une table calculée sur plusieurs
+  sites : garder les services présents dans l'hôpital, renormaliser chaque
+  bloc, recalculer les rangs. Utilisée aussi par l'appariement des venues
+  (`effectifs_durees_urgences`, `effectifs_supplement_rang2`) quand la table
+  `premier_service_racine` n'a pas de colonne de site : la restriction se fait
+  site par site, aux services observés comme premier service sur ce site.
 - **`table_proportions(effectifs, colonnes_bloc, colonnes_categorie, replis=(), seuil=None, contexte=None)`** :
   normalisation au niveau fin plus les niveaux de repli (sous-ensembles de
   `colonnes_bloc`, colonnes absentes laissées vides). Pour `sorties`,
