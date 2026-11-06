@@ -43,6 +43,10 @@ ghm,racine_ghm,niveau,libelle,ga,gp,da
 01C132,01C13,2,"Craniotomies, niveau 2",,,D03
 01C133,01C13,3,"Craniotomies, niveau 3",,,D03
 01C134,01C13,4,"Craniotomies, niveau 4",,,D03
+01C041,01C04,1,"Interventions sur le rachis, niveau 1",,,D03
+01C042,01C04,2,"Interventions sur le rachis, niveau 2",,,D03
+01C043,01C04,3,"Interventions sur le rachis, niveau 3",,,D03
+01C044,01C04,4,"Interventions sur le rachis, niveau 4",,,D03
 06M031,06M03,1,"Hémorragies digestives, niveau 1",,,D04
 06M032,06M03,2,"Hémorragies digestives, niveau 2",,,D04
 06M033,06M03,3,"Hémorragies digestives, niveau 3",,,D04

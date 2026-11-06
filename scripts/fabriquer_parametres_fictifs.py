@@ -103,6 +103,8 @@ RACINES = {
               {"NEURO": 0.70, "PED": 0.20, "MED_POLY": 0.10}, 3.5, (0.03, 0.05, 0.03), (0.94, 0.02, 0.01, 0.02, 0.01)),
     "01C13": ("Craniotomies", "D03", 0.6, 0.40, (0, 55, 30, 15), 0.45,
               {"NEUROCHIR": 0.95, "NEURO": 0.05}, 10.0, (0.60, 0.0, 0.30), (0.60, 0.25, 0.01, 0.08, 0.06)),
+    "01C04": ("Interventions sur le rachis", "D03", 0.8, 0.15, (0, 60, 30, 10), 0.45,
+              {"NEUROCHIR": 1.0}, 6.0, (0.05, 0.0, 0.25), (0.85, 0.10, 0.0, 0.03, 0.02)),
     "06M03": ("Hémorragies digestives", "D04", 1.5, 0.85, (0, 35, 25, 40), 0.40,
               {"GASTRO": 0.55, "MED_INT": 0.20, "GERIA": 0.15, "MED_POLY": 0.10}, 5.5, (0.06, 0.0, 0.10), (0.80, 0.08, 0.03, 0.03, 0.06)),
     "06M05": ("Occlusions intestinales non dues à une hernie", "D04", 1.0, 0.80, (5, 40, 25, 30), 0.50,
@@ -300,12 +302,17 @@ def generer_sejours(rng: np.random.Generator, site: str, annee: int, venues_hosp
             etapes.append(("UNV", frac_sc["usi"])); reste -= frac_sc["usi"]
         elif row["usi"] and "USIC" in SERVICES_SITE[site]:
             etapes.append(("USIC", frac_sc["usi"])); reste -= frac_sc["usi"]
-        if row["rea"]:
-            etapes.append(("REA", frac_sc["rea"])); reste -= frac_sc["rea"]
-        elif row["usc"] and SERVICES[row["premier_service"]][1] == "chirurgie":
+        chirurgie = SERVICES[row["premier_service"]][1] == "chirurgie"
+        if (row["rea"] or row["usc"]) and chirurgie and row["mode_entree"] == "programme":
+            # opéré : admis dans le service de chirurgie, puis réanimation ou surveillance continue, puis retour
             etapes.insert(0, (row["premier_service"], 0.05)); etapes.append(("REA", frac_sc["usc"])); reste -= 0.30
+        elif row["rea"]:
+            etapes.append(("REA", frac_sc["rea"])); reste -= frac_sc["rea"]
         elif row["usc"]:
             etapes.append(("REA", frac_sc["usc"])); reste -= frac_sc["usc"]
+        # une partie des décès survient en réanimation : le parcours s'arrête là
+        if row["mode_sortie"] == "deces" and any(e[0] == "REA" for e in etapes) and rng.random() < 0.6:
+            etapes = [e for e in etapes if e[0] == "REA"][:1]; reste = 0
         # service principal, puis éventuellement un service d'aval (gériatrie, médecine polyvalente)
         u = rng.random()
         prem = row["premier_service"]

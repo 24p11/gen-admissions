@@ -267,6 +267,12 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
         sous_bloc = avec_site(sous_bloc, effectifs, contexte)
         morceaux.append(normaliser(effectifs, sous_bloc, colonnes_categorie, seuil=seuil, contexte=[]))
     colonnes = colonnes_bloc + colonnes_categorie + ["part"]
+    # les colonnes de bloc passent en texte avant la concaténation : les cases vides des replis
+    # ne transforment pas un mois « 1 » en « 1.0 »
+    for m in morceaux:
+        for c in colonnes_bloc:
+            if c in m.columns:
+                m[c] = m[c].astype(str)
     return pd.concat(morceaux, ignore_index=True).reindex(columns=colonnes).fillna({c: "" for c in colonnes_bloc})
 
 
@@ -437,8 +443,10 @@ def effectifs_arrivees(v: pd.DataFrame, contexte: Sequence[str] | None = None) -
         semaine.groupby(contexte + ["dimension", "jour_semaine", "heure"]).size().reset_index(name="n"),
         mois.groupby(contexte + ["dimension", "mois"]).size().reset_index(name="n"),
     ]
-    return (pd.concat(morceaux, ignore_index=True)
-            .reindex(columns=contexte + COLONNES_PROFIL_ARRIVEES + ["n"]).fillna(""))
+    t = pd.concat(morceaux, ignore_index=True).reindex(columns=contexte + COLONNES_PROFIL_ARRIVEES + ["n"])
+    for c in ("jour_semaine", "heure", "mois"):          # entiers en texte, vides sur l'autre dimension (pas de « 1.0 »)
+        t[c] = t[c].map(lambda x: "" if pd.isna(x) else str(int(x)))
+    return t
 
 
 def effectifs_profil_semaine(df: pd.DataFrame, dates: pd.Series,
