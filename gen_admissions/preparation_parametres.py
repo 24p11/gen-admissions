@@ -621,12 +621,24 @@ def _venues_preparees(v: pd.DataFrame, tension_classee: pd.DataFrame,
         if "premier_service" not in t.columns:
             raise KeyError("la colonne premier_service manque dans les venues ; ajoutez la spécialité du premier "
                            "RUM hors UHCD du séjour chaîné (jointure sur le numéro de séjour)")
-        rangs = premier_service_racine[premier_service_racine["classe_age"].astype(str) != ""]
-        rangs = rangs[avec_site(["racine_ghm", "classe_age", "specialite", "rang"], rangs, contexte)].rename(
-            columns={"specialite": "premier_service", "rang": "rang_premier"})
+        colonnes_rang = avec_site(["racine_ghm", "classe_age", "specialite", "rang"], premier_service_racine, contexte)
+        rangs = premier_service_racine[colonnes_rang].rename(columns={"specialite": "premier_service", "rang": "rang_premier"})
+        rangs["classe_age"] = rangs["classe_age"].astype(str)
+        fins = rangs[rangs["classe_age"] != ""]
+        replis = rangs[rangs["classe_age"] == ""].drop(columns="classe_age").rename(columns={"rang_premier": "rang_repli"})
         t["racine_ghm"] = t["ghm"].astype(str).str[:5]
-        t = t.merge(rangs, on=cles + ["racine_ghm", "classe_age", "premier_service"], how="left")
-        t["rang_premier"] = t["rang_premier"].astype("Int64")
+        # 1. le rang au niveau fin (racine × classe d'âge)
+        t = t.merge(fins, on=cles + ["racine_ghm", "classe_age", "premier_service"], how="left")
+        # 2. un rang 3 signale un bloc complété par la règle des catégories rares (moins de `seuil` séjours) :
+        #    le rang est alors celui de la ligne de repli par racine seule, comme le fera le simulateur
+        t = t.merge(replis, on=cles + ["racine_ghm", "premier_service"], how="left")
+        complete = t["rang_premier"].isna() | t["rang_premier"].eq(3)
+        t["rang_premier"] = t["rang_premier"].where(~complete, t["rang_repli"]).astype("Int64")
+        hosp = t["situation"].eq("hospitalisation")
+        if (complete & hosp).any():
+            print(f"{(complete & hosp).sum()} venues hospitalisées ({(complete & hosp).sum() / hosp.sum():.1%}) dans un bloc "
+                  "racine × âge complété : rang pris sur le repli par racine")
+        t = t.drop(columns="rang_repli")
     return t, cles
 
 
