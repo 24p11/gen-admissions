@@ -1,0 +1,149 @@
+ghm,racine_ghm,niveau,libelle,ga,gp,da
+05M091,05M09,1,"Insuffisances cardiaques et états de choc circulatoire, niveau 1",,,D01
+05M092,05M09,2,"Insuffisances cardiaques et états de choc circulatoire, niveau 2",,,D01
+05M093,05M09,3,"Insuffisances cardiaques et états de choc circulatoire, niveau 3",,,D01
+05M094,05M09,4,"Insuffisances cardiaques et états de choc circulatoire, niveau 4",,,D01
+05M041,05M04,1,"Infarctus aigu du myocarde, niveau 1",,,D01
+05M042,05M04,2,"Infarctus aigu du myocarde, niveau 2",,,D01
+05M043,05M04,3,"Infarctus aigu du myocarde, niveau 3",,,D01
+05M044,05M04,4,"Infarctus aigu du myocarde, niveau 4",,,D01
+05M061,05M06,1,"Arythmies et troubles de la conduction, niveau 1",,,D01
+05M062,05M06,2,"Arythmies et troubles de la conduction, niveau 2",,,D01
+05M063,05M06,3,"Arythmies et troubles de la conduction, niveau 3",,,D01
+05M064,05M06,4,"Arythmies et troubles de la conduction, niveau 4",,,D01
+05M131,05M13,1,"Douleurs thoraciques, niveau 1",,,D01
+05M132,05M13,2,"Douleurs thoraciques, niveau 2",,,D01
+05M133,05M13,3,"Douleurs thoraciques, niveau 3",,,D01
+05M134,05M13,4,"Douleurs thoraciques, niveau 4",,,D01
+04M051,04M05,1,"Pneumonies et pleurésies banales, niveau 1",,,D02
+04M052,04M05,2,"Pneumonies et pleurésies banales, niveau 2",,,D02
+04M053,04M05,3,"Pneumonies et pleurésies banales, niveau 3",,,D02
+04M054,04M05,4,"Pneumonies et pleurésies banales, niveau 4",,,D02
+04M201,04M20,1,"Bronchopneumopathies chroniques surinfectées, niveau 1",,,D02
+04M202,04M20,2,"Bronchopneumopathies chroniques surinfectées, niveau 2",,,D02
+04M203,04M20,3,"Bronchopneumopathies chroniques surinfectées, niveau 3",,,D02
+04M204,04M20,4,"Bronchopneumopathies chroniques surinfectées, niveau 4",,,D02
+04M131,04M13,1,"Œdème pulmonaire et détresse respiratoire, niveau 1",,,D02
+04M132,04M13,2,"Œdème pulmonaire et détresse respiratoire, niveau 2",,,D02
+04M133,04M13,3,"Œdème pulmonaire et détresse respiratoire, niveau 3",,,D02
+04M134,04M13,4,"Œdème pulmonaire et détresse respiratoire, niveau 4",,,D02
+01M301,01M30,1,"Accidents vasculaires intracérébraux non transitoires, niveau 1",,,D03
+01M302,01M30,2,"Accidents vasculaires intracérébraux non transitoires, niveau 2",,,D03
+01M303,01M30,3,"Accidents vasculaires intracérébraux non transitoires, niveau 3",,,D03
+01M304,01M30,4,"Accidents vasculaires intracérébraux non transitoires, niveau 4",,,D03
+01M311,01M31,1,"Accidents ischémiques transitoires, niveau 1",,,D03
+01M312,01M31,2,"Accidents ischémiques transitoires, niveau 2",,,D03
+01M313,01M31,3,"Accidents ischémiques transitoires, niveau 3",,,D03
+01M314,01M31,4,"Accidents ischémiques transitoires, niveau 4",,,D03
+01M161,01M16,1,"Épilepsie, niveau 1",,,D03
+01M162,01M16,2,"Épilepsie, niveau 2",,,D03
+01M163,01M16,3,"Épilepsie, niveau 3",,,D03
+01M164,01M16,4,"Épilepsie, niveau 4",,,D03
+01C131,01C13,1,"Craniotomies, niveau 1",,,D03
+01C132,01C13,2,"Craniotomies, niveau 2",,,D03
+01C133,01C13,3,"Craniotomies, niveau 3",,,D03
+01C134,01C13,4,"Craniotomies, niveau 4",,,D03
+06M031,06M03,1,"Hémorragies digestives, niveau 1",,,D04
+06M032,06M03,2,"Hémorragies digestives, niveau 2",,,D04
+06M033,06M03,3,"Hémorragies digestives, niveau 3",,,D04
+06M034,06M03,4,"Hémorragies digestives, niveau 4",,,D04
+06M051,06M05,1,"Occlusions intestinales non dues à une hernie, niveau 1",,,D04
+06M052,06M05,2,"Occlusions intestinales non dues à une hernie, niveau 2",,,D04
+06M053,06M05,3,"Occlusions intestinales non dues à une hernie, niveau 3",,,D04
+06M054,06M05,4,"Occlusions intestinales non dues à une hernie, niveau 4",,,D04
+06C041,06C04,1,"Interventions majeures sur l'intestin grêle et le côlon, niveau 1",,,D04
+06C042,06C04,2,"Interventions majeures sur l'intestin grêle et le côlon, niveau 2",,,D04
+06C043,06C04,3,"Interventions majeures sur l'intestin grêle et le côlon, niveau 3",,,D04
+06C044,06C04,4,"Interventions majeures sur l'intestin grêle et le côlon, niveau 4",,,D04
+06C091,06C09,1,"Appendicectomies, niveau 1",,,D04
+06C092,06C09,2,"Appendicectomies, niveau 2",,,D04
+06C093,06C09,3,"Appendicectomies, niveau 3",,,D04
+06C094,06C09,4,"Appendicectomies, niveau 4",,,D04
+07M061,07M06,1,"Affections des voies biliaires, niveau 1",,,D04
+07M062,07M06,2,"Affections des voies biliaires, niveau 2",,,D04
+07M063,07M06,3,"Affections des voies biliaires, niveau 3",,,D04
+07M064,07M06,4,"Affections des voies biliaires, niveau 4",,,D04
+07C141,07C14,1,"Cholécystectomies sans exploration de la voie biliaire, niveau 1",,,D04
+07C142,07C14,2,"Cholécystectomies sans exploration de la voie biliaire, niveau 2",,,D04
+07C143,07C14,3,"Cholécystectomies sans exploration de la voie biliaire, niveau 3",,,D04
+07C144,07C14,4,"Cholécystectomies sans exploration de la voie biliaire, niveau 4",,,D04
+08C241,08C24,1,"Prothèses de hanche pour des affections autres que des traumatismes, niveau 1",,,D05
+08C242,08C24,2,"Prothèses de hanche pour des affections autres que des traumatismes, niveau 2",,,D05
+08C243,08C24,3,"Prothèses de hanche pour des affections autres que des traumatismes, niveau 3",,,D05
+08C244,08C24,4,"Prothèses de hanche pour des affections autres que des traumatismes, niveau 4",,,D05
+08C271,08C27,1,"Autres interventions sur la hanche et le fémur, niveau 1",,,D05
+08C272,08C27,2,"Autres interventions sur la hanche et le fémur, niveau 2",,,D05
+08C273,08C27,3,"Autres interventions sur la hanche et le fémur, niveau 3",,,D05
+08C274,08C27,4,"Autres interventions sur la hanche et le fémur, niveau 4",,,D05
+08C321,08C32,1,"Interventions sur la jambe, âge supérieur à 17 ans, niveau 1",,,D05
+08C322,08C32,2,"Interventions sur la jambe, âge supérieur à 17 ans, niveau 2",,,D05
+08C323,08C32,3,"Interventions sur la jambe, âge supérieur à 17 ans, niveau 3",,,D05
+08C324,08C32,4,"Interventions sur la jambe, âge supérieur à 17 ans, niveau 4",,,D05
+08C381,08C38,1,"Interventions sur le membre supérieur, niveau 1",,,D05
+08C382,08C38,2,"Interventions sur le membre supérieur, niveau 2",,,D05
+08C383,08C38,3,"Interventions sur le membre supérieur, niveau 3",,,D05
+08C384,08C38,4,"Interventions sur le membre supérieur, niveau 4",,,D05
+08M311,08M31,1,"Fractures du bassin et de la hanche, traitement médical, niveau 1",,,D05
+08M312,08M31,2,"Fractures du bassin et de la hanche, traitement médical, niveau 2",,,D05
+08M313,08M31,3,"Fractures du bassin et de la hanche, traitement médical, niveau 3",,,D05
+08M314,08M31,4,"Fractures du bassin et de la hanche, traitement médical, niveau 4",,,D05
+11C051,11C05,1,"Interventions transurétrales, niveau 1",,,D06
+11C052,11C05,2,"Interventions transurétrales, niveau 2",,,D06
+11C053,11C05,3,"Interventions transurétrales, niveau 3",,,D06
+11C054,11C05,4,"Interventions transurétrales, niveau 4",,,D06
+11M041,11M04,1,"Infections des reins et des voies urinaires, niveau 1",,,D06
+11M042,11M04,2,"Infections des reins et des voies urinaires, niveau 2",,,D06
+11M043,11M04,3,"Infections des reins et des voies urinaires, niveau 3",,,D06
+11M044,11M04,4,"Infections des reins et des voies urinaires, niveau 4",,,D06
+11M071,11M07,1,"Lithiases urinaires, niveau 1",,,D06
+11M072,11M07,2,"Lithiases urinaires, niveau 2",,,D06
+11M073,11M07,3,"Lithiases urinaires, niveau 3",,,D06
+11M074,11M07,4,"Lithiases urinaires, niveau 4",,,D06
+14Z141,14Z14,1,"Accouchements uniques par voie basse, niveau 1",,,D15
+14Z142,14Z14,2,"Accouchements uniques par voie basse, niveau 2",,,D15
+14Z143,14Z14,3,"Accouchements uniques par voie basse, niveau 3",,,D15
+14Z144,14Z14,4,"Accouchements uniques par voie basse, niveau 4",,,D15
+14C081,14C08,1,"Césariennes, niveau 1",,,D15
+14C082,14C08,2,"Césariennes, niveau 2",,,D15
+14C083,14C08,3,"Césariennes, niveau 3",,,D15
+14C084,14C08,4,"Césariennes, niveau 4",,,D15
+13C031,13C03,1,"Hystérectomies, niveau 1",,,D15
+13C032,13C03,2,"Hystérectomies, niveau 2",,,D15
+13C033,13C03,3,"Hystérectomies, niveau 3",,,D15
+13C034,13C03,4,"Hystérectomies, niveau 4",,,D15
+17M061,17M06,1,"Chimiothérapie pour autre tumeur, niveau 1",,,D13
+17M062,17M06,2,"Chimiothérapie pour autre tumeur, niveau 2",,,D13
+17M063,17M06,3,"Chimiothérapie pour autre tumeur, niveau 3",,,D13
+17M064,17M06,4,"Chimiothérapie pour autre tumeur, niveau 4",,,D13
+17M051,17M05,1,"Tumeurs malignes hématologiques, niveau 1",,,D13
+17M052,17M05,2,"Tumeurs malignes hématologiques, niveau 2",,,D13
+17M053,17M05,3,"Tumeurs malignes hématologiques, niveau 3",,,D13
+17M054,17M05,4,"Tumeurs malignes hématologiques, niveau 4",,,D13
+23M201,23M20,1,"Autres symptômes et motifs de recours aux soins, niveau 1",,,D27
+23M202,23M20,2,"Autres symptômes et motifs de recours aux soins, niveau 2",,,D27
+23M203,23M20,3,"Autres symptômes et motifs de recours aux soins, niveau 3",,,D27
+23M204,23M20,4,"Autres symptômes et motifs de recours aux soins, niveau 4",,,D27
+18M071,18M07,1,"Septicémies, niveau 1",,,D27
+18M072,18M07,2,"Septicémies, niveau 2",,,D27
+18M073,18M07,3,"Septicémies, niveau 3",,,D27
+18M074,18M07,4,"Septicémies, niveau 4",,,D27
+10M061,10M06,1,"Diabète, niveau 1",,,D08
+10M062,10M06,2,"Diabète, niveau 2",,,D08
+10M063,10M06,3,"Diabète, niveau 3",,,D08
+10M064,10M06,4,"Diabète, niveau 4",,,D08
+16M111,16M11,1,"Anémies, niveau 1",,,D11
+16M112,16M11,2,"Anémies, niveau 2",,,D11
+16M113,16M11,3,"Anémies, niveau 3",,,D11
+16M114,16M11,4,"Anémies, niveau 4",,,D11
+04M041,04M04,1,"Bronchiolites, niveau 1",,,D02
+04M042,04M04,2,"Bronchiolites, niveau 2",,,D02
+04M043,04M04,3,"Bronchiolites, niveau 3",,,D02
+04M044,04M04,4,"Bronchiolites, niveau 4",,,D02
+06M081,06M08,1,"Gastro-entérites et maladies diverses du tube digestif, niveau 1",,,D04
+06M082,06M08,2,"Gastro-entérites et maladies diverses du tube digestif, niveau 2",,,D04
+06M083,06M08,3,"Gastro-entérites et maladies diverses du tube digestif, niveau 3",,,D04
+06M084,06M08,4,"Gastro-entérites et maladies diverses du tube digestif, niveau 4",,,D04
+05C051,05C05,1,"Chirurgie cardiaque, niveau 1",,,D01
+05C052,05C05,2,"Chirurgie cardiaque, niveau 2",,,D01
+05C053,05C05,3,"Chirurgie cardiaque, niveau 3",,,D01
+05C054,05C05,4,"Chirurgie cardiaque, niveau 4",,,D01

@@ -1,166 +1,161 @@
 etablissement: HOPITAL_FICTIF_480
-description: Hôpital fictif d'environ 480 lits, paramètres fabriqués par scripts/fabriquer_parametres.py
+description: Hôpital fictif d'environ 480 lits ; paramètres fabriqués par scripts/fabriquer_parametres_fictifs.py
+  (graine 42) à partir d'une réalité inventée, avec les fonctions d'extraction du
+  module
 debut: '2026-01-01'
-unite_de_temps: heure
 classes_age:
 - 0-17
 - 18-64
-- 65-79
-- 80+
+- 65-74
+- 75+
+classes_age_duree:
+- 0-59
+- 60+
 services:
   URG:
-    libelle: Urgences
-    type: urgences
-    lits: 0
-    hebergement: []
-  UHCD:
-    libelle: Unité d'hospitalisation de courte durée
-    type: uhcd
+    libelle: Urgences (dont UHCD)
+    specialite: URG
     lits: 10
-    hebergement:
-    - MED_POLY
   REA:
-    libelle: Réanimation
-    type: reanimation
-    lits: 20
-    hebergement: []
-  USC:
-    libelle: Soins continus
-    type: soins_continus
-    lits: 12
-    hebergement: []
+    libelle: Réanimation et surveillance continue
+    specialite: REA
+    lits: 32
+    soins_critiques:
+    - rea
+    - usc
+    age_min: 18
   USIC:
     libelle: Soins intensifs cardiologiques
-    type: soins_intensifs
+    specialite: USIC
     lits: 8
-    hebergement: []
+    soins_critiques:
+    - usi
+    age_min: 18
+  UNV:
+    libelle: Unité neuro-vasculaire
+    specialite: UNV
+    lits: 6
+    soins_critiques:
+    - usi
+    age_min: 18
   CARDIO:
     libelle: Cardiologie
-    type: medecine
+    specialite: CARDIO
     lits: 36
-    hebergement:
-    - MED_INT
-    - PNEUMO
-    - MED_POLY
+    age_min: 18
+    presents_vises: 32.9
   PNEUMO:
     libelle: Pneumologie
-    type: medecine
+    specialite: PNEUMO
     lits: 30
-    hebergement:
-    - MED_INT
-    - CARDIO
-    - MED_POLY
+    age_min: 18
+    presents_vises: 26.4
   MED_INT:
     libelle: Médecine interne
-    type: medecine
+    specialite: MED_INT
     lits: 40
-    hebergement:
-    - PNEUMO
-    - MED_POLY
-    - GASTRO
+    age_min: 18
+    presents_vises: 35.5
   GERIA:
     libelle: Gériatrie aiguë
-    type: medecine
+    specialite: GERIA
     lits: 40
-    hebergement:
-    - MED_INT
-    - MED_POLY
     age_min: 75
+    presents_vises: 45.0
   NEURO:
     libelle: Neurologie
-    type: medecine
+    specialite: NEURO
     lits: 30
-    hebergement:
-    - MED_INT
-    - MED_POLY
+    age_min: 18
+    presents_vises: 26.5
   GASTRO:
     libelle: Gastro-entérologie
-    type: medecine
-    lits: 28
-    hebergement:
-    - MED_INT
-    - CHIR_DIG
+    specialite: GASTRO
+    lits: 16
+    age_min: 18
+    presents_vises: 11.3
   ONCO:
     libelle: Oncologie-hématologie
-    type: medecine
+    specialite: ONCO
     lits: 30
-    hebergement:
-    - MED_INT
+    age_min: 18
+    presents_vises: 27.6
   MED_POLY:
     libelle: Médecine polyvalente post-urgences
-    type: medecine
+    specialite: MED_POLY
     lits: 40
-    hebergement:
-    - MED_INT
-    - GERIA
-    - PNEUMO
+    age_min: 18
+    presents_vises: 31.5
   ORTHO:
     libelle: Orthopédie-traumatologie
-    type: chirurgie
+    specialite: ORTHO
     lits: 36
-    hebergement:
-    - CHIR_DIG
-    - URO
+    age_min: 18
+    presents_vises: 31.2
   CHIR_DIG:
     libelle: Chirurgie digestive
-    type: chirurgie
+    specialite: CHIR_DIG
     lits: 32
-    hebergement:
-    - ORTHO
-    - URO
+    age_min: 18
+    presents_vises: 25.9
   URO:
     libelle: Urologie
-    type: chirurgie
+    specialite: URO
     lits: 22
-    hebergement:
-    - CHIR_DIG
-    - ORTHO
+    age_min: 18
+    presents_vises: 18.3
   GYN_OBS:
     libelle: Gynécologie-obstétrique
-    type: obstetrique
+    specialite: GYN_OBS
     lits: 34
-    hebergement: []
     sexe: F
+    presents_vises: 26.0
   PED:
     libelle: Pédiatrie
-    type: pediatrie
-    lits: 28
-    hebergement: []
+    specialite: PED
+    lits: 16
     age_max: 17
+    presents_vises: 10.0
 urgences:
-  passages_par_an: 45000
-  delai_max_attente_h: 6
+  service: URG
+  passages_par_an: 46800
+  saison: 2024-2025
+  seuil_uhcd_h: 6
   delai_transfert_h: 24
-  pas_reessai_h: 1
-regles:
-  delai_max_attente_mutation_h: 12
-  retour_service_origine: true
-  duree_min_restante_pour_retour_h: 12
-  priorite_par_gravite:
-    1: 2
-    2: 2
-    3: 1
-    4: 0
-    5: 0
-  priorite_programme: 2
-  priorite_mutation: 1
+lits:
+  delai_report_programme_h: 8
+  heure_releve_tension: 8
+  priorites:
+    sortie_soins_critiques: 0
+    urgences: 1
+    mutation: 1
+    programme: 2
 sorties:
-  facteur_weekend: 0.45
   services_sans_effet_weekend:
-  - UHCD
   - REA
-  - USC
   - USIC
+  - UNV
+  - URG
 population:
   probabilite_retour:
     0-17: 0.1
     18-64: 0.12
-    65-79: 0.2
-    80+: 0.28
+    65-74: 0.2
+    75+: 0.28
 simulation:
   duree_jours: 365
   chauffe_jours: 42
   marge_fin_jours: 60
   graine: 42
-confidentialite:
-  seuil_effectif: 20
+autorisations_soins_critiques:
+  rea:
+  - 01A
+  - 01B
+  usi:
+  - 02A
+  - 02E
+  - 02F
+  - '18'
+  usc:
+  - 03A
+  - 03B

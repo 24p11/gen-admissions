@@ -153,3 +153,23 @@ par groupe. Le schéma commun : requête par année → fonction « effectifs »
   sessions.
 - **`lire_sql(nom, requete, connexion, dossier="data", forcer=False)`** :
   `memoriser` appliqué à `connexion.read_sql(requete)`.
+
+## 13. Vérification d'un dossier de paramètres
+
+- **`verifier_dossier(dossier, contexte=(), tolerance=1e-3)`** : pour chacun des
+  22 fichiers attendus, vérifie la présence, les colonnes (`ATTENDUS`,
+  `AUTRES`) et, pour les tables de proportions, que les parts somment à 1 dans
+  chaque bloc, au niveau fin puis niveau de repli par niveau de repli (les
+  lignes de repli sont reconnues à leurs colonnes de bloc vides). Imprime une
+  ligne par fichier (`ok`, `MANQUANT`, `COLONNES`, `SOMMES` avec les premiers
+  blocs fautifs) et renvoie vrai si tout passe. Appelée par la dernière cellule
+  du notebook et par `scripts/fabriquer_parametres_fictifs.py`.
+
+## 14. L'hôpital fictif
+
+`scripts/fabriquer_parametres_fictifs.py` fabrique les 22 fichiers de
+`parametres/hopital_type/` en inventant d'abord une réalité (venues, séjours,
+RUM de deux sites sur trois ans), puis en lui appliquant les fonctions de ce
+module exactement comme le notebook le fait sur les données réelles. C'est le
+banc d'essai du simulateur et de l'extraction : tout changement de format se
+vérifie dessus avant les données réelles.

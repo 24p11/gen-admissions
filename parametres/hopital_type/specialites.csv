@@ -1,0 +1,18 @@
+specialite,libelle,type
+URG,Urgences (dont UHCD),urgences
+REA,Réanimation et surveillance continue,soins_critiques
+USIC,Soins intensifs cardiologiques,soins_critiques
+UNV,Unité neuro-vasculaire,soins_critiques
+CARDIO,Cardiologie,medecine
+PNEUMO,Pneumologie,medecine
+MED_INT,Médecine interne,medecine
+GERIA,Gériatrie aiguë,medecine
+NEURO,Neurologie,medecine
+GASTRO,Gastro-entérologie,medecine
+ONCO,Oncologie-hématologie,medecine
+MED_POLY,Médecine polyvalente post-urgences,medecine
+ORTHO,Orthopédie-traumatologie,chirurgie
+CHIR_DIG,Chirurgie digestive,chirurgie
+URO,Urologie,chirurgie
+GYN_OBS,Gynécologie-obstétrique,obstetrique
+PED,Pédiatrie,pediatrie

@@ -15,6 +15,14 @@ hébergements dans un autre service, taux d'occupation réalistes.
 > l'on disposera des agrégats d'un vrai établissement, il suffira de remplacer
 > les fichiers du dossier `parametres/`, sans toucher au code.
 
+> **État du dépôt (novembre 2026).** Le format des paramètres a été refondu
+> (version 2 : 22 fichiers décrits dans `parametres/DICTIONNAIRE.md`, fonctions
+> d'extraction dans `gen_admissions/preparation_parametres.py` et
+> `parametres/FONCTIONS.md`). Le dossier `parametres/hopital_type/` est au
+> format 2, fabriqué par `scripts/fabriquer_parametres_fictifs.py`. Le
+> simulateur décrit ci-dessous est la version 1 : il ne lit pas encore ce
+> format, sa version 2 est en cours ; le reste de ce README sera repris avec elle.
+
 ## Démarrage rapide
 
 ```bash

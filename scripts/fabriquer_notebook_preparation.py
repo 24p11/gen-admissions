@@ -93,70 +93,9 @@ Ces fichiers ne contiennent que des proportions, mais ils décrivent un site
 réel : à garder hors du dépôt public tant que leur diffusion n'est pas décidée.
 """
 
-CELLULE_BILAN_CODE = '''# Vérification du dossier de sortie : présence, colonnes, sommes à 1 par bloc
-from pathlib import Path
-
-# nom : (colonnes attendues, colonnes de bloc du niveau fin, colonnes qui sont vides sur les lignes de repli)
-ATTENDUS = {
-    "niveaux": (["racine_ghm", "classe_age", "niveau", "part"], ["racine_ghm", "classe_age"], ["classe_age"]),
-    "durees_ghm": (["ghm", "classe_age_duree", "duree_j", "part"], ["ghm", "classe_age_duree"], ["classe_age_duree"]),
-    "sexe_racine": (["racine_ghm", "sexe", "part"], ["racine_ghm"], []),
-    "sorties": (["racine_ghm", "niveau", "classe_age", "mode_sortie", "part"], ["racine_ghm", "niveau", "classe_age"], ["niveau", "classe_age"]),
-    "premier_service_racine": (["racine_ghm", "classe_age", "specialite", "part", "rang"], ["racine_ghm", "classe_age"], ["classe_age"]),
-    "casemix": (["specialite", "classe_age", "racine_ghm", "part"], ["specialite"], []),
-    "table_passage": (["niveau", "service", "precedent", "classe_age", "mode_entree", "suite", "part", "rang"],
-                      ["niveau", "service", "precedent", "classe_age", "mode_entree"], ["precedent", "classe_age", "mode_entree"]),
-    "venues_urgences": (["saison", "periode", "classe_age", "situation", "gravite", "racine_ghm", "part"], ["saison", "periode", "classe_age"], ["periode"]),
-    "gravite_urgences": (["classe_age", "situation", "tranche_h", "gravite", "part"], ["classe_age", "situation", "tranche_h"], ["tranche_h"]),
-    "durees_passage_urgences": (["situation", "gravite", "classe_age", "classe_tension", "tranche_h", "part"],
-                                ["situation", "gravite", "classe_age", "classe_tension"], ["classe_tension", "gravite"]),
-    "supplement_rang2": (["classe_tension", "tranche_h", "part"], ["classe_tension"], ["classe_tension"]),
-    "profil_patients_urgences": (["classe_age", "sexe", "part"], [], []),
-    "profil_arrivees_urgences": (["saison", "dimension", "jour_semaine", "heure", "mois", "part"], ["saison", "dimension"], []),
-    "profil_entrees_programmees": (["dimension", "jour_semaine", "heure", "part"], ["dimension"], []),
-    "profil_sorties": (["dimension", "jour_semaine", "heure", "part"], ["dimension"], []),
-}
-AUTRES = ["structure.yaml", "specialites.csv", "regroupements_ghm.csv", "soins_critiques_ghm.csv",
-          "durees_passage.csv", "classes_tension.csv", "cibles.csv"]
-
-
-def sommes_fautives(t, bloc, tolerance):
-    """Blocs dont la somme des parts s'écarte de 1 de plus que la tolérance (Series somme, avec n lignes)."""
-    g = t.groupby(bloc)["part"] if bloc else t.assign(_un=1).groupby("_un")["part"]
-    bilan = g.agg(somme="sum", lignes="size")
-    return bilan[(bilan["somme"] - 1).abs() > tolerance]
-
-
-def verifier_dossier(dossier, contexte, tolerance=1e-3):
-    """Pour chaque fichier attendu : présence, colonnes, sommes à 1 par bloc (niveau fin, puis replis)."""
-    dossier = Path(dossier)
-    for nom, (colonnes, bloc, replis) in ATTENDUS.items():
-        f = dossier / f"{nom}.csv"
-        if not f.exists():
-            print(f"MANQUANT  {nom}"); continue
-        t = pd.read_csv(f, dtype=str, keep_default_na=False)
-        manquantes = [c for c in colonnes if c not in t.columns]
-        if manquantes:
-            print(f"COLONNES  {nom} : manque {manquantes} ; colonnes du fichier : {list(t.columns)}"); continue
-        t["part"] = t["part"].astype(float)
-        # niveau fin : aucune colonne de repli vide ; replis : regroupés selon les colonnes vides
-        vides = (t[replis] == "").any(axis=1) if replis else pd.Series(False, index=t.index)
-        fautives = [sommes_fautives(t[~vides], bloc, tolerance)]
-        if vides.any():
-            for _, part in t[vides].groupby([t.loc[vides, c] == "" for c in replis]):
-                fautives.append(sommes_fautives(part, [c for c in bloc if (part[c] != "").all()], tolerance))
-        fautives = pd.concat(fautives)
-        if len(fautives):
-            print(f"SOMMES    {nom} : {len(fautives)} blocs ne somment pas à 1 (tolérance {tolerance}) ; premiers :")
-            print(fautives.head().to_string())
-        else:
-            print(f"ok        {nom} ({len(t)} lignes)")
-    for nom in AUTRES:
-        print(("ok        " if (dossier / nom).exists() else "MANQUANT  ") + nom)
-
-
-# Les fichiers exportés décrivent un seul site et n'ont plus de colonne de site :
-# on vérifie donc sans contexte ([]), et non avec SITE qui sert aux calculs multi-sites.
+CELLULE_BILAN_CODE = '''# Vérification du dossier de sortie : présence, colonnes, sommes à 1 par bloc (niveau fin puis replis).
+# La liste des fichiers et de leurs colonnes attendues est ATTENDUS / AUTRES dans le module (FONCTIONS.md, section 13).
+# Les fichiers exportés décrivent un seul site et n'ont plus de colonne de site : contexte [] (et non SITE).
 verifier_dossier(DOSSIER_SORTIE, [])
 '''
 

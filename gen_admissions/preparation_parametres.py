@@ -810,7 +810,10 @@ def table_passage_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = 
     morceaux = []
     for niveau, colonnes in REGLAGES.blocs_passage.items():
         e = effectifs[effectifs["niveau"] == niveau]
-        t = normaliser(e, colonnes, seuil=seuil, contexte=contexte)
+        # colonnes_categorie=["suite"] : les effectifs sont additionnés sur les colonnes absentes du bloc
+        # (le site, quand la table est calculée sur tous les sites avec contexte=[])
+        t = normaliser(e, colonnes, colonnes_categorie=["suite"], seuil=seuil, contexte=contexte)
+        t["niveau"] = niveau
         t["rang"] = attribuer_rang(t, part_min=part_min, masque=t["suite"].ne("sortie"))
         morceaux.append(t)
     return (pd.concat(morceaux, ignore_index=True)
@@ -908,3 +911,73 @@ def verifier_table(t: pd.DataFrame, colonnes_bloc: Sequence[str], contexte: Sequ
     fautives = sommes[sommes != 1]
     if len(fautives):
         raise ValueError(f"{len(fautives)} blocs ne somment pas à 1 :\n{fautives.head()}")
+
+
+# ---------------------------------------------------------------------------
+# Vérification d'un dossier de paramètres (les 22 fichiers)
+# ---------------------------------------------------------------------------
+
+# nom : (colonnes attendues, colonnes de bloc du niveau fin, colonnes vides sur les lignes de repli)
+ATTENDUS = {
+    "niveaux": (["racine_ghm", "classe_age", "niveau", "part"], ["racine_ghm", "classe_age"], ["classe_age"]),
+    "durees_ghm": (["ghm", "classe_age_duree", "duree_j", "part"], ["ghm", "classe_age_duree"], ["classe_age_duree"]),
+    "sexe_racine": (["racine_ghm", "sexe", "part"], ["racine_ghm"], []),
+    "sorties": (["racine_ghm", "niveau", "classe_age", "mode_sortie", "part"], ["racine_ghm", "niveau", "classe_age"], ["niveau", "classe_age"]),
+    "premier_service_racine": (["racine_ghm", "classe_age", "specialite", "part", "rang"], ["racine_ghm", "classe_age"], ["classe_age"]),
+    "casemix": (["specialite", "classe_age", "racine_ghm", "part"], ["specialite"], []),
+    "table_passage": (["niveau", "service", "precedent", "classe_age", "mode_entree", "suite", "part", "rang"],
+                      ["niveau", "service", "precedent", "classe_age", "mode_entree"], ["precedent", "classe_age", "mode_entree"]),
+    "venues_urgences": (["saison", "periode", "classe_age", "situation", "gravite", "racine_ghm", "part"], ["saison", "periode", "classe_age"], ["periode"]),
+    "gravite_urgences": (["classe_age", "situation", "tranche_h", "gravite", "part"], ["classe_age", "situation", "tranche_h"], ["tranche_h"]),
+    "durees_passage_urgences": (["situation", "gravite", "classe_age", "classe_tension", "tranche_h", "part"],
+                                ["situation", "gravite", "classe_age", "classe_tension"], ["classe_tension", "gravite"]),
+    "supplement_rang2": (["classe_tension", "tranche_h", "part"], ["classe_tension"], ["classe_tension"]),
+    "profil_patients_urgences": (["classe_age", "sexe", "part"], [], []),
+    "profil_arrivees_urgences": (["saison", "dimension", "jour_semaine", "heure", "mois", "part"], ["saison", "dimension"], []),
+    "profil_entrees_programmees": (["dimension", "jour_semaine", "heure", "part"], ["dimension"], []),
+    "profil_sorties": (["dimension", "jour_semaine", "heure", "part"], ["dimension"], []),
+}
+AUTRES = ["structure.yaml", "specialites.csv", "regroupements_ghm.csv", "soins_critiques_ghm.csv",
+          "durees_passage.csv", "classes_tension.csv", "cibles.csv"]
+
+
+def sommes_fautives(t, bloc, tolerance):
+    """Blocs dont la somme des parts s'écarte de 1 de plus que la tolérance (Series somme, avec n lignes)."""
+    g = t.groupby(bloc)["part"] if bloc else t.assign(_un=1).groupby("_un")["part"]
+    bilan = g.agg(somme="sum", lignes="size")
+    return bilan[(bilan["somme"] - 1).abs() > tolerance]
+
+
+def verifier_dossier(dossier, contexte: Sequence[str] = (), tolerance: float = 1e-3) -> bool:
+    """Vérifie un dossier de paramètres : pour chacun des 22 fichiers attendus, présence,
+    colonnes, et sommes à 1 par bloc (niveau fin, puis niveaux de repli). Imprime une
+    ligne par fichier et renvoie True si tout est bon. ``contexte`` : colonnes de site
+    présentes dans les fichiers (normalement aucune : les fichiers décrivent un site)."""
+    dossier = Path(dossier)
+    tout_bon = True
+    for nom, (colonnes, bloc, replis) in ATTENDUS.items():
+        f = dossier / f"{nom}.csv"
+        if not f.exists():
+            print(f"MANQUANT  {nom}"); tout_bon = False; continue
+        t = pd.read_csv(f, dtype=str, keep_default_na=False)
+        manquantes = [c for c in colonnes if c not in t.columns]
+        if manquantes:
+            print(f"COLONNES  {nom} : manque {manquantes} ; colonnes du fichier : {list(t.columns)}"); tout_bon = False; continue
+        t["part"] = t["part"].astype(float)
+        # niveau fin : aucune colonne de repli vide ; replis : regroupés selon les colonnes vides
+        vides = (t[replis] == "").any(axis=1) if replis else pd.Series(False, index=t.index)
+        fautives = [sommes_fautives(t[~vides], bloc, tolerance)]
+        if vides.any():
+            for _, part in t[vides].groupby([t.loc[vides, c] == "" for c in replis]):
+                fautives.append(sommes_fautives(part, [c for c in bloc if (part[c] != "").all()], tolerance))
+        fautives = pd.concat(fautives)
+        if len(fautives):
+            print(f"SOMMES    {nom} : {len(fautives)} blocs ne somment pas à 1 (tolérance {tolerance}) ; premiers :")
+            print(fautives.head().to_string()); tout_bon = False
+        else:
+            print(f"ok        {nom} ({len(t)} lignes)")
+    for nom in AUTRES:
+        present = (dossier / nom).exists()
+        tout_bon &= present
+        print(("ok        " if present else "MANQUANT  ") + nom)
+    return tout_bon
