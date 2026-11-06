@@ -463,8 +463,9 @@ md("""
 `table_passage.csv`, niveau `service` (le repli : la suite ne dépend que du service en cours),
 après la même restriction : pour chaque service, la part des passages qui se terminent par la
 sortie de l'hôpital et la répartition des mutations vers les autres services. Puis, de
-`durees_passage.csv`, la durée médiane et l'écart interquartile d'un passage par spécialité,
-selon le mode d'entrée.
+`durees_passage.csv`, la durée d'un passage par spécialité : médiane et quartiles de la
+spécialité (ligne de repli), et les médianes du niveau fin, un point par classe d'âge,
+colorés selon le mode d'entrée — on y lit l'effet de l'âge et celui du mode d'entrée.
 """)
 
 code("""
@@ -487,15 +488,21 @@ plt.colorbar(im, ax=ax, fraction=0.02); plt.show()
 """)
 
 code("""
-d = dp[(dp["classe_age"] == "") & (dp["mode_entree"] != "")]          # repli spécialité × mode d'entrée
-ordre = d.groupby("specialite")["mediane_j"].max().sort_values(ascending=False).index
+# le repli (spécialité seule, toutes entrées) donne la médiane et les quartiles ; le niveau fin
+# (spécialité × mode d'entrée × classe d'âge) donne un point par classe d'âge, coloré selon le mode
+repli_sp = dp[(dp["classe_age"] == "") & (dp["mode_entree"] == "")].set_index("specialite")
+fin_sp = dp[(dp["classe_age"] != "") & (dp["mode_entree"] != "")]
+ordre = repli_sp["mediane_j"].sort_values(ascending=False).index
+x = {sp: i for i, sp in enumerate(ordre)}
 fig, ax = plt.subplots(figsize=(12, 4.5))
-for k, (mode, couleur) in enumerate([("urgences", "#d1495b"), ("programme", "#2a6f97")]):
-    g = d[d["mode_entree"] == mode].set_index("specialite").reindex(ordre)
-    x = np.arange(len(ordre)) + (k - 0.5) * 0.3
-    ax.errorbar(x, g["mediane_j"], yerr=[g["mediane_j"] - g["q1_j"], g["q3_j"] - g["mediane_j"]], fmt="o", color=couleur, capsize=3, label=mode)
+r = repli_sp.reindex(ordre)
+ax.bar(range(len(ordre)), r["q3_j"] - r["q1_j"], bottom=r["q1_j"], color="#e0e0e0", width=0.6, label="quartiles (toutes entrées)")
+ax.plot(range(len(ordre)), r["mediane_j"], "_", color="black", ms=18, mew=2, label="médiane (toutes entrées)")
+for mode, couleur, dx in [("urgences", "#d1495b", -0.15), ("programme", "#2a6f97", 0.15)]:
+    g = fin_sp[fin_sp["mode_entree"] == mode]
+    ax.scatter([x[sp] + dx for sp in g["specialite"]], g["mediane_j"], s=18, color=couleur, label=f"médiane {mode}, par classe d'âge", zorder=3)
 ax.set_xticks(range(len(ordre))); ax.set_xticklabels(ordre, rotation=90); ax.set_ylabel("jours")
-ax.set_title("Durée d'un passage par spécialité : médiane et quartiles, selon le mode d'entrée"); ax.legend()
+ax.set_title("Durée d'un passage par spécialité"); ax.legend(fontsize=8)
 plt.tight_layout(); plt.show()
 """)
 
