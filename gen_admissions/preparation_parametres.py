@@ -614,6 +614,8 @@ def _venues_preparees(v: pd.DataFrame, tension_classee: pd.DataFrame,
     sans_classe = t["classe_tension"].isna()
     if sans_classe.any():
         print(f"{sans_classe.mean():.1%} de venues sans classe de tension (jour absent de la série), exclues")
+        if cles:   # le détail par site : un site absent de la série d'occupation perd toutes ses venues
+            print(sans_classe.groupby([t[c] for c in cles]).mean().rename("part_exclue").round(3).to_string())
         t = t[~sans_classe]
     if premier_service_racine is not None:
         if "premier_service" not in t.columns:
