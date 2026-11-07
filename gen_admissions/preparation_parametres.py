@@ -286,6 +286,49 @@ def additionner(effectifs_par_annee: Iterable[pd.DataFrame], colonnes: Sequence[
 
 
 # ---------------------------------------------------------------------------
+# Réglages locaux (chemins propres à la machine, hors du dépôt)
+# ---------------------------------------------------------------------------
+
+NOM_CONFIG_LOCALE = "config_locale.yaml"
+
+
+def racine_depot(depart: str | Path | None = None) -> Path:
+    """Le dossier du dépôt : le premier, en remontant depuis ``depart`` (le dossier courant
+    par défaut), qui contient ``gen_admissions/`` ; à défaut, le dossier qui contient ce module."""
+    depart = Path(depart or Path.cwd()).resolve()
+    for p in [depart, *depart.parents]:
+        if (p / "gen_admissions").is_dir():
+            return p
+    return Path(__file__).resolve().parents[1]
+
+
+def config_locale(depart: str | Path | None = None) -> dict:
+    """Les réglages propres à la machine, lus dans ``config_locale.yaml`` à la racine du dépôt
+    (fichier non suivi par git ; modèle : ``config_locale.exemple.yaml``). Sans fichier, les
+    valeurs par défaut du dépôt : l'hôpital fictif, un dossier ``data`` à la racine, pas de site.
+
+    Clés : ``dossier_parametres`` (les 22 fichiers), ``dossier_data`` (requêtes mémorisées en
+    parquet), ``site`` (le site exporté, ou None), ``fichier_tension`` (série quotidienne,
+    facultative). Les chemins relatifs sont pris depuis la racine du dépôt ; ``racine`` est ajoutée.
+    """
+    import yaml
+
+    racine = racine_depot(depart)
+    valeurs = {"dossier_parametres": "parametres/hopital_type", "dossier_data": "data", "site": None, "fichier_tension": None}
+    chemin = racine / NOM_CONFIG_LOCALE
+    if chemin.exists():
+        with open(chemin, encoding="utf-8") as f:
+            valeurs.update({k: v for k, v in (yaml.safe_load(f) or {}).items() if v is not None})
+    for cle in ("dossier_parametres", "dossier_data", "fichier_tension"):
+        if valeurs[cle] is not None:
+            valeurs[cle] = (racine / Path(valeurs[cle])).resolve() if not Path(valeurs[cle]).is_absolute() else Path(valeurs[cle])
+    if valeurs["site"] is not None:
+        valeurs["site"] = str(valeurs["site"])
+    valeurs["racine"] = racine
+    return valeurs
+
+
+# ---------------------------------------------------------------------------
 # Mémorisation des résultats de requête (fichiers parquet)
 # ---------------------------------------------------------------------------
 

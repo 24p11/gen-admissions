@@ -1,0 +1,7 @@
+# Réglages propres à cette machine. Copier ce fichier en `config_locale.yaml` (non suivi par git)
+# à la racine du dépôt et adapter les chemins ; sans ce fichier, les notebooks et le simulateur
+# travaillent sur l'hôpital fictif du dépôt. Chemins absolus, ou relatifs à la racine du dépôt.
+dossier_parametres: prod                 # où le notebook de préparation écrit les 22 fichiers, et où le simulateur les lit
+dossier_data: prod/data                  # résultats de requêtes mémorisés en parquet
+site: "00073"                            # le site exporté (colonne nohop) ; entre guillemets pour garder les zéros
+fichier_tension: prod/tension.parquet    # facultatif : série quotidienne de la tension, pour la cartographie

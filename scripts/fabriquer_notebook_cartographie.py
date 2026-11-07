@@ -45,7 +45,7 @@ import matplotlib as mpl
 # le dépôt : on remonte jusqu'au dossier qui contient gen_admissions/, pour trouver le module
 RACINE = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "gen_admissions").exists())
 import sys; sys.path.insert(0, str(RACINE))
-from gen_admissions.preparation_parametres import restreindre_services
+from gen_admissions.preparation_parametres import restreindre_services, config_locale
 
 plt.rcParams.update({"figure.figsize": (10, 4.5), "axes.grid": True, "grid.alpha": 0.3, "axes.spines.top": False, "axes.spines.right": False})
 CLASSES_AGE = ["0-17", "18-64", "65-74", "75+"]
@@ -56,17 +56,21 @@ JOURS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"]
 md("""
 ## Réglages
 
-`DOSSIER` est le dossier des 22 fichiers : l'hôpital fictif du dépôt par défaut ; pour un
-hôpital réel, le dossier où le notebook de préparation a écrit ses fichiers (`prod/`, qui
-n'est pas suivi par git). `FICHIER_TENSION` est facultatif : la série quotidienne de la
-tension n'est pas dans les 22 fichiers (seulement ses bornes) ; si un fichier parquet avec
-les colonnes `date` et `tension` est là, le notebook trace la série, sinon il passe.
+Les chemins viennent de `config_locale.yaml` à la racine du dépôt (fichier propre à la
+machine, non suivi par git ; modèle : `config_locale.exemple.yaml`). Sans ce fichier, le
+notebook tourne sur l'hôpital fictif du dépôt. `fichier_tension` est facultatif : la série
+quotidienne de la tension n'est pas dans les 22 fichiers (seulement ses bornes) ; si un
+fichier parquet avec les colonnes `date` et `tension` est indiqué et présent, le notebook
+trace la série, sinon il passe.
 """)
 
 code("""
-DOSSIER = RACINE / "parametres" / "hopital_type"      # chez soi : Path("prod") ou un chemin absolu
-FICHIER_TENSION = DOSSIER / "tension.parquet"        # facultatif ; dans le notebook de préparation :
-                                                     # tension_ref[tension_ref.nohop == NOHOP].to_parquet(DOSSIER_SORTIE / "tension.parquet", index=False)
+CONF = config_locale()
+DOSSIER = CONF["dossier_parametres"]
+FICHIER_TENSION = CONF["fichier_tension"] or (DOSSIER / "tension.parquet")
+# pour produire tension.parquet, dans le notebook de préparation, après la cellule classes_tension :
+#   tension_ref[tension_ref.nohop == NOHOP].to_parquet(DOSSIER_SORTIE / "tension.parquet", index=False)
+print(CONF)
 """)
 
 md("""

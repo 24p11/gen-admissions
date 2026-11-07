@@ -63,11 +63,16 @@ configurer(
 )
 print(REGLAGES)
 
-DOSSIER_SORTIE = "parametres/mon_etablissement"   # où écrire les fichiers de proportions
-DOSSIER_TRAVAIL = "travail"                        # effectifs intermédiaires par année (non diffusés)
+# Les chemins propres à la machine viennent de config_locale.yaml à la racine du dépôt (non suivi par
+# git ; modèle : config_locale.exemple.yaml). Sans ce fichier : l'hôpital fictif du dépôt et un dossier data/.
+CONF = config_locale()
+DOSSIER_SORTIE = CONF["dossier_parametres"]        # où écrire les 22 fichiers
+DOSSIER_DATA = CONF["dossier_data"]                # résultats de requêtes mémorisés en parquet (lire_sql / memoriser)
+NOHOP = CONF["site"]                               # le site exporté (None : pas de filtre de site à l'export)
 ANNEES = range(2020, 2025)                         # tables de comptage par GHM, racine, parcours : plusieurs années
 ANNEE_RECENTE = 2024                               # profils, durées, tension : la dernière année suffit
 connexion = None                                   # à remplacer par votre connexion à la base
+print(CONF)
 '''
 
 CELLULE_BILAN_MD = """## Bilan : les 22 fichiers attendus

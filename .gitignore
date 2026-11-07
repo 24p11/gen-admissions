@@ -11,3 +11,7 @@ sorties/*
 !sorties/exemple/
 sorties/exemple/*.parquet
 prod/
+
+# réglages propres à la machine
+config_locale.yaml
+data/
