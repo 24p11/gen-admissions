@@ -271,7 +271,8 @@ axes[0].set_title("Patients des urgences : âge et sexe"); axes[0].legend()
 
 sit_age = v.assign(w=w).groupby(["classe_age", "situation"]).apply(lambda g: (g["part"] * g["w"]).sum() / g["w"].sum() if g["w"].sum() else 0).unstack(fill_value=0)
 sit_age = sit_age.div(sit_age.sum(axis=1), axis=0).reindex(CLASSES_AGE)
-sit_age[["consultation", "mono_uhcd", "hospitalisation", "transfert", "deces"]].plot.bar(stacked=True, ax=axes[1], color=plt.cm.Set2.colors, rot=0)
+ordre_sit = [s_ for s_ in ["consultation", "mono_uhcd", "hospitalisation", "transfert", "deces"] if s_ in sit_age.columns]
+sit_age[ordre_sit].plot.bar(stacked=True, ax=axes[1], color=plt.cm.Set2.colors, rot=0)
 axes[1].set_title("Devenir de la venue selon l'âge"); axes[1].set_ylabel("part des venues"); axes[1].legend(fontsize=8)
 
 gr = P["gravite"]; gr = gr[gr["tranche_h"] == ""]       # ligne de repli : par classe d'âge × situation, toutes durées
