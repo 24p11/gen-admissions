@@ -20,8 +20,9 @@ Conventions communes :
   (`2026-03-14 17:42`) ; les vraies tables PMSI ont souvent le jour seul pour
   `d8eeue`/`d8soue` — il suffit de tronquer, l'inverse n'est pas possible ;
 - **niveau de structure** : le simulateur connaît les services (une spécialité =
-  une UMA) ; les mouvements sont donc au niveau de l'UMA, pas des unités
-  d'hébergement plus fines qui existent dans le réel ;
+  une UMA) ; les mouvements sont donc au niveau de la spécialité, pas des unités
+  d'hébergement plus fines qui existent dans le réel, et il n'y a pas de codes
+  d'UMA (`uma_ej`) — ces listes sont une particularité du réel ;
 - **écriture** : un fichier parquet et un CSV par table (`rpu`, `rsa`, `rum`,
   `mouvements`), plus `tension.parquet` (la série quotidienne de la tension
   simulée) et `resume.yaml` (paramètres, graine, période, comptages) pour la
@@ -62,7 +63,7 @@ Conventions communes :
 | `duree` | nuitées (différence de dates calendaires) |
 | `echpmsi` | mode d'entrée du séjour : `8` domicile |
 | `prov` | provenance : `5` si venu des urgences, vide sinon |
-| `cdpu` | *à préciser* : son contenu par rapport à `prov` reste à confirmer (question ouverte) |
+| `cdpu` | `5` si venu des urgences, vide sinon (comme `prov`, au niveau du séjour) |
 | `schpmsi`, `dest` | mode de sortie et destination : domicile `8`/vide, EHPAD `8`/`7`, SSR `7`/`2`, transfert `7`/`1`, décès `9`/vide |
 | `nb_rum` | nombre de RUM, UHCD comprise |
 | `sim_origine` | `urgences` ou `programme` |
@@ -81,6 +82,7 @@ Conventions communes :
 | `cdurm` | code d'unité fictif (= le service) |
 | `d8eeue`, `d8soue` | entrée et sortie du RUM (date-heure) |
 | `mdeeue` | mode d'entrée du RUM : premier RUM `8` (domicile) ; RUM suivants `6` (mutation) |
+| `cdpu` | `5` sur le premier RUM d'un séjour venu des urgences, vide sur les suivants (mutation) et sur les séjours programmés |
 | `mdsoue` | mode de sortie du RUM : dernier RUM = `schpmsi` du séjour ; RUM intermédiaires `6` (mutation) |
 | `agean`, `ghm` | repris du séjour |
 | `sim_service_prevu`, `sim_rang` | service demandé et rang du service obtenu |
@@ -97,7 +99,7 @@ dans un même service s'il y en a. Il y a donc au moins autant de mouvements que
 | `type` | `SIM` |
 | `nohop`, `nas`, `ipp` | site, séjour, personne |
 | `nomvt`, `nbmvt` | numéro du mouvement, nombre de mouvements du séjour |
-| `uma_ej`, `spe_uma` | unité (fictive, = le service) et spécialité |
+| `spe_uma` | la spécialité (= le service) ; pas d'`uma_ej` : les listes d'UMA sont une particularité du réel que la simulation ne reproduit pas |
 | `d8eeue`, `d8soue` | entrée et sortie du mouvement (date-heure) |
 | `prov` | `5` sur le premier mouvement d'un séjour venu des urgences, vide sinon |
 | `lit` | numéro de lit fictif dans le service |
@@ -111,8 +113,7 @@ spécialité. Les colonnes `sim_` sont la seule trace de ce que le simulateur «
 et que le réel ne dit jamais : le service prévu (exprimé, comme le service obtenu, avec
 les codes `spe_uma`), le rang, l'attente.
 
-## Questions ouvertes
+## Question ouverte
 
-- `cdpu` (niveau séjour) : son contenu par rapport à `prov`.
-- `ids_type_mouvement` : les codes du DIM à reprendre pour les types de mouvement, et
-  l'usage éventuel de `ids_mode_admission`.
+- `ids_type_mouvement` : les codes du DIM à reprendre pour les types de mouvement ; en
+  attendant, les valeurs sont `entree`, `mutation`, `changement_lit`.
