@@ -689,8 +689,13 @@ est la moyenne glissante sur 7 jours, qui efface la semaine pour laisser voir la
 code("""
 from gen_admissions.graphiques import entrees_par_jour, tracer_entrees_par_jour
 
-# la même fonction que le notebook de préparation applique aux données réelles : mêmes définitions, même tracé
-entrees = entrees_par_jour(rpu["entree"], rsa["d8eeue"], rsa["prov"] == "5", debut=DEBUT, fin=FIN)
+# La même fonction que le notebook de préparation applique aux données réelles, et surtout la même définition
+# d'un séjour : son premier RUM hors UHCD (date d'entrée = celle de ce RUM, venu des urgences = prov 5 du séjour).
+# Les séjours limités à l'UHCD n'ont pas de RUM hors UHCD : ils ne comptent pas, ni ici ni dans le réel.
+URG = S["urgences"]["service"]
+premiers_sim = (rum[rum["spe_uma"] != URG].sort_values(["nas", "norum"]).drop_duplicates("nas")
+                .merge(rsa[["nas", "prov"]], on="nas"))
+entrees = entrees_par_jour(rpu["entree"], premiers_sim["d8eeue"], premiers_sim["prov"] == "5", debut=DEBUT, fin=FIN)
 semaine = tracer_entrees_par_jour(entrees, "Entrées par jour sur l'année simulée")
 """)
 
