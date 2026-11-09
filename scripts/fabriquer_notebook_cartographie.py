@@ -1,6 +1,6 @@
 """Fabrique notebooks/cartographie_hopital.ipynb : la cartographie d'un hôpital à
 partir de ses 22 fichiers de paramètres (structure, volumes déduits, urgences,
-casemix, parcours). Le notebook est paramétré par un dossier ; il tourne sur
+casemix, parcours), puis lance la simulation et diagnostique ses sorties. Le notebook est paramétré par un dossier ; il tourne sur
 l'hôpital fictif comme sur un dossier réel.
 
 Usage : python scripts/fabriquer_notebook_cartographie.py
@@ -522,6 +522,306 @@ l'hôpital. Le tableau ci-dessous les liste pour l'hôpital entier ; les cibles 
 code("""
 c = P["cibles"]
 c[c["service"] == ""][["indicateur", "classe_tension", "observe", "min", "max"]].reset_index(drop=True)
+""")
+
+
+# ---------------------------------------------------------------------------
+# 6. Simuler, puis diagnostiquer les sorties
+# ---------------------------------------------------------------------------
+
+md("""
+## 6. De bout en bout : simuler, puis regarder ce qui sort
+
+Tout ce qui précède décrit l'hôpital *tel que les paramètres le disent*. On fait
+maintenant tourner le simulateur sur ces mêmes paramètres et on regarde les tables
+produites, avec deux questions en tête :
+
+1. **les tables se tiennent-elles ?** — un séjour a bien ses RUM et ses mouvements,
+   les dates s'enchaînent, les codes PMSI sont cohérents entre tables (c'est le même
+   genre de contrôle que l'on ferait sur une extraction réelle) ;
+2. **l'hôpital simulé ressemble-t-il à celui des paramètres ?** — entrées par jour,
+   présents par service, tension, casemix.
+
+### Lancer la simulation
+
+La commande est celle du README : `python -m gen_admissions <dossier_parametres>
+--sortie <dossier> --duree 365`. Elle simule une année « utile », précédée d'une
+période de chauffe (l'hôpital vide se remplit) et suivie d'une marge (pour que les
+séjours commencés en fin d'année se terminent) ; seuls les séjours et venues
+entièrement dans la période utile sont écrits. Elle écrit dans le dossier de sortie :
+
+- `rpu`, `rsa`, `rum`, `mouvements` en parquet et en CSV (format : `sorties/FORMAT.md`) ;
+- `tension.parquet`, la série quotidienne de la tension simulée ;
+- `resume.yaml` (graine, période, capacités, volumes) et `controle.csv`, le tableau de
+  contrôle que la commande affiche aussi à l'écran.
+
+La cellule ci-dessous lance la commande depuis le notebook, avec le même interpréteur
+Python que le noyau. Le dossier de sortie est `sorties/essai` à la racine du dépôt pour
+l'hôpital fictif, `<dossier_parametres>/sorties/essai` sinon (donc dans `prod/`, hors git).
+Compter une trentaine de secondes pour un an ; `--sans-csv` l'accélère un peu.
+""")
+
+code("""
+import subprocess, sys
+
+GRAINE, DUREE = 42, 365
+SORTIE_SIM = RACINE / "sorties" / "essai" if RACINE / "parametres" in DOSSIER.parents else DOSSIER / "sorties" / "essai"
+
+commande = [sys.executable, "-m", "gen_admissions", str(DOSSIER), "--sortie", str(SORTIE_SIM), "--duree", str(DUREE), "--graine", str(GRAINE)]
+print(" ".join(commande), "\\n")
+res = subprocess.run(commande, cwd=RACINE, capture_output=True, text=True, encoding="utf-8")
+print(res.stdout[-6000:])                 # la fin : le tableau de contrôle et le bilan
+if res.returncode:
+    print(res.stderr[-3000:])
+""")
+
+md("""
+### Les tables produites
+
+On relit les parquets. Les colonnes `sim_` (la vérité du simulateur) sont conservées :
+elles servent plus bas à distinguer les entrées par les urgences des programmées
+sans avoir à l'inférer, mais tout ce qui suit pourrait aussi se faire avec les seules
+colonnes « réelles ».
+""")
+
+code("""
+T = {nom: pd.read_parquet(SORTIE_SIM / f"{nom}.parquet") for nom in ("rpu", "rsa", "rum", "mouvements", "tension")}
+RESUME = yaml.safe_load(open(SORTIE_SIM / "resume.yaml", encoding="utf-8"))
+CONTROLE = pd.read_csv(SORTIE_SIM / "controle.csv")
+rpu, rsa, rum, mvt = T["rpu"], T["rsa"], T["rum"], T["mouvements"]
+DEBUT, FIN = pd.Timestamp(RESUME["periode"]["debut"]), pd.Timestamp(RESUME["periode"]["fin"])
+print({k: len(v) for k, v in T.items()})
+rsa.head(3)
+""")
+
+md("""
+### Les tables se tiennent-elles ? Tests de jointure et de cohérence
+
+Chaque ligne du tableau est un test ; `defauts` compte les lignes qui le violent. Sur
+une sortie du simulateur, tout doit être à zéro : ces tests sont la définition même du
+format. Les mêmes tests, lancés sur une extraction réelle, ne donnent jamais zéro
+partout — c'est précisément l'écart entre le monde propre du simulateur et les données
+réelles (séjours à cheval sur la période, RUM non contigus, mouvements sans RUM…).
+""")
+
+code("""
+def tests_coherence(rpu, rsa, rum, mvt):
+    t = []
+    def test(nom, masque_defauts, detail=""):
+        n = int(pd.Series(masque_defauts).sum())
+        t.append({"test": nom, "defauts": n, "ok": n == 0, "detail": detail})
+
+    # --- identifiants et jointures
+    test("rsa : nas unique", rsa["nas"].duplicated())
+    test("rpu : no_visite unique", rpu["no_visite"].duplicated())
+    test("rum -> rsa : chaque RUM a son séjour", ~rum["nas"].isin(rsa["nas"]))
+    test("mouvements -> rsa : chaque mouvement a son séjour", ~mvt["nas"].isin(rsa["nas"]))
+    test("rsa -> rum : chaque séjour a au moins un RUM", ~rsa["nas"].isin(rum["nas"]))
+    test("rsa -> mouvements : chaque séjour a au moins un mouvement", ~rsa["nas"].isin(mvt["nas"]))
+    test("rpu -> rsa : la venue hospitalisée pointe un séjour existant", rpu["nas"].notna() & ~rpu["nas"].isin(rsa["nas"]))
+    test("rsa -> rpu : le séjour venu des urgences pointe une venue existante", rsa["no_visite"].notna() & ~rsa["no_visite"].isin(rpu["no_visite"]))
+    test("rsa : venu des urgences (prov=5) <=> no_visite renseigné", (rsa["prov"] == "5") != rsa["no_visite"].notna())
+    test("rpu : mode_sortie 6 (mutation) <=> nas renseigné", (rpu["mode_sortie"] == "6") != rpu["nas"].notna())
+    ipp_rum = rum[["nas", "ipp"]].drop_duplicates().merge(rsa[["nas", "ipp"]], on="nas", suffixes=("", "_rsa"))
+    test("ipp identique entre rum et rsa", ipp_rum["ipp"] != ipp_rum["ipp_rsa"])
+
+    # --- comptages annoncés dans le séjour
+    n_rum = rum.groupby("nas").size().rename("n")
+    j = rsa.set_index("nas").join(n_rum)
+    test("rsa.nb_rum = nombre de RUM", j["nb_rum"] != j["n"])
+    n_mvt = mvt.groupby("nas").size().rename("n")
+    j = mvt.set_index("nas")[["nbmvt"]].join(n_mvt)
+    test("mouvements.nbmvt = nombre de mouvements du séjour", j["nbmvt"] != j["n"])
+
+    # --- enchaînement des RUM dans le temps
+    r = rum.sort_values(["nas", "norum"]).copy()
+    r["rang_attendu"] = r.groupby("nas").cumcount() + 1
+    test("rum : norum consécutifs à partir de 1", r["norum"] != r["rang_attendu"])
+    r["fin_precedent"] = r.groupby("nas")["d8soue"].shift()
+    test("rum : chaque RUM commence quand le précédent finit", r["fin_precedent"].notna() & (r["d8eeue"] != r["fin_precedent"]))
+    test("rum : d8eeue <= d8soue", r["d8eeue"] > r["d8soue"])
+    bornes = r.groupby("nas").agg(premier=("d8eeue", "first"), dernier=("d8soue", "last")).join(rsa.set_index("nas")[["d8eeue", "d8soue"]])
+    test("rsa.d8eeue = entrée du premier RUM", bornes["premier"] != bornes["d8eeue"])
+    test("rsa.d8soue = sortie du dernier RUM", bornes["dernier"] != bornes["d8soue"])
+    test("rsa : d8eeue et d8soue dans la période utile", (rsa["d8eeue"] < DEBUT) | (rsa["d8soue"] > FIN))
+    test("rum.noseqrum désigne un RUM existant du séjour", ~r.set_index(["nas", "noseqrum"]).index.isin(r.set_index(["nas", "norum"]).index))
+
+    # --- codes PMSI entre tables
+    dernier = r.groupby("nas").last().join(rsa.set_index("nas")[["schpmsi"]])
+    test("dernier RUM : mdsoue = schpmsi du séjour", dernier["mdsoue"] != dernier["schpmsi"])
+    test("RUM intermédiaires : mdsoue = 6 (mutation)", (r["norum"] < r.groupby("nas")["norum"].transform("max")) & (r["mdsoue"] != "6"))
+    premier = r[r["norum"] == 1].set_index("nas").join(rsa.set_index("nas")[["prov", "echpmsi"]])
+    test("premier RUM : mdeeue = echpmsi du séjour", premier["mdeeue"] != premier["echpmsi"])
+    test("premier RUM : cdpu = 5 si et seulement si prov = 5", (premier["cdpu"] == "5") != (premier["prov"] == "5"))
+    test("RUM suivants : cdpu vide", (r["norum"] > 1) & (r["cdpu"] != ""))
+
+    # --- urgences et séjour
+    # sans UHCD, le séjour commence quand la venue finit ; avec UHCD, il commence à l'entrée en UHCD, pendant la venue
+    j = rpu.dropna(subset=["nas"]).merge(rsa[["nas", "d8eeue"]], on="nas")
+    test("hospitalisé sans UHCD : l'entrée du séjour est la sortie des urgences", (j["sim_uhcd"] == "non") & (j["sortie"] != j["d8eeue"]))
+    test("hospitalisé via l'UHCD : l'entrée du séjour est pendant la venue", (j["sim_uhcd"] == "oui") & ~j["d8eeue"].between(j["entree"], j["sortie"]))
+    test("rpu : entree <= sortie", rpu["entree"] > rpu["sortie"])
+
+    # --- mouvements dans leur RUM
+    j = mvt.merge(rum[["nas", "spe_uma", "d8eeue", "d8soue"]], on=["nas", "spe_uma"], suffixes=("", "_rum"))
+    dans = (j["d8eeue"] >= j["d8eeue_rum"]) & (j["d8soue"] <= j["d8soue_rum"])
+    test("chaque mouvement est inclus dans un RUM de même spécialité", ~dans.groupby([j["nas"], j["nomvt"]]).any())
+    return pd.DataFrame(t)
+
+TESTS = tests_coherence(rpu, rsa, rum, mvt)
+print(f"{TESTS['ok'].sum()} tests sur {len(TESTS)} sans défaut")
+TESTS.style.map(lambda ok: "color: green" if ok else "color: red; font-weight: bold", subset=["ok"])
+""")
+
+md("""
+### Les entrées, jour après jour
+
+Trois rythmes se superposent : la saison (le mois), la semaine (le programmé s'arrête le
+week-end, les urgences non) et le bruit poissonnien d'un jour à l'autre. Le trait épais
+est la moyenne glissante sur 7 jours, qui efface la semaine pour laisser voir la saison.
+""")
+
+code("""
+jour = lambda s: s.dt.normalize()
+entrees = pd.DataFrame({
+    "venues aux urgences": rpu.groupby(jour(rpu["entree"])).size(),
+    "séjours entrés par les urgences": rsa[rsa["prov"] == "5"].groupby(jour(rsa["d8eeue"])).size(),
+    "séjours programmés": rsa[rsa["prov"] != "5"].groupby(jour(rsa["d8eeue"])).size(),
+}).reindex(pd.date_range(DEBUT, FIN - pd.Timedelta(days=1)), fill_value=0)
+
+fig, axes = plt.subplots(2, 1, figsize=(11, 7), sharex=True)
+for ax, cols in zip(axes, [["venues aux urgences"], ["séjours entrés par les urgences", "séjours programmés"]]):
+    for c in cols:
+        trait, = ax.plot(entrees.index, entrees[c].rolling(7, center=True).mean(), lw=2, label=c)
+        ax.plot(entrees.index, entrees[c], lw=0.6, alpha=0.4, color=trait.get_color())
+    ax.legend(loc="upper right"); ax.set_ylabel("par jour")
+axes[0].set_title("Entrées par jour sur l'année simulée")
+plt.tight_layout(); plt.show()
+
+semaine = entrees.groupby(entrees.index.dayofweek).mean().round(1)
+semaine.index = JOURS
+print("moyenne par jour de semaine :"); display(semaine.T)
+""")
+
+md("""
+### Les présents par jour et par service
+
+Le nombre de présents se lit dans les **mouvements** : à un instant donné, un patient est
+présent dans un service s'il y a un mouvement de ce service qui a commencé avant et qui
+finit après. On relève la photographie **chaque matin à 8 h**, comme la tension du
+simulateur. On compare ensuite la moyenne des présents à la capacité (lits ouverts,
+dans `resume.yaml`) et aux présents visés des paramètres.
+""")
+
+code("""
+def presents_a(mvt, instants):
+    \"\"\"Présents par service à chaque instant : nb de mouvements commencés avant et finis après.\"\"\"
+    out = {}
+    for sp, g in mvt.groupby("spe_uma"):
+        e, s = np.sort(g["d8eeue"].values), np.sort(g["d8soue"].values)
+        out[sp] = np.searchsorted(e, instants.values, side="right") - np.searchsorted(s, instants.values, side="right")
+    return pd.DataFrame(out, index=instants)
+
+MATINS = pd.date_range(DEBUT, FIN - pd.Timedelta(days=1)) + pd.Timedelta(hours=8)
+PRESENTS = presents_a(mvt, MATINS)
+CAPACITES = pd.Series(RESUME["capacites"])
+URG = S["urgences"]["service"]
+conventionnels = [c for c in PRESENTS.columns if c != URG and c not in {code for code, sv in S["services"].items() if sv.get("soins_critiques")}]
+
+fig, ax = plt.subplots(figsize=(11, 4))
+ax.plot(PRESENTS.index, PRESENTS[conventionnels].sum(axis=1), lw=1, label="présents à 8 h, services conventionnels")
+ax.axhline(CAPACITES[conventionnels].sum(), color="black", ls="--", lw=1, label="lits ouverts")
+ax.legend(); ax.set_title("Présents dans les services conventionnels, chaque matin"); plt.tight_layout(); plt.show()
+
+bilan_services = pd.DataFrame({"presents_moyens": PRESENTS.mean().round(1), "p95": PRESENTS.quantile(0.95).round(0), "lits_ouverts": CAPACITES})
+bilan_services["occupation"] = (bilan_services["presents_moyens"] / bilan_services["lits_ouverts"]).round(2)
+cible = P["cibles"].query("indicateur == 'presents_moyens'").set_index("service")["observe"]
+bilan_services["presents_vises"] = cible.reindex(bilan_services.index).round(1)
+bilan_services["ecart_relatif"] = ((bilan_services["presents_moyens"] - bilan_services["presents_vises"]) / bilan_services["presents_vises"]).round(2)
+display(bilan_services.sort_values("occupation", ascending=False))
+
+fig, ax = plt.subplots(figsize=(11, 4))
+ordre = bilan_services.drop(index=URG, errors="ignore").sort_values("lits_ouverts", ascending=False)
+x = np.arange(len(ordre))
+ax.bar(x - 0.2, ordre["lits_ouverts"], 0.4, color="lightgrey", label="lits ouverts")
+ax.bar(x + 0.2, ordre["presents_moyens"], 0.4, color="#2a6f97", label="présents moyens simulés")
+ax.scatter(x + 0.2, ordre["presents_vises"], color="#d1495b", zorder=3, s=20, label="présents visés (paramètres)")
+ax.set_xticks(x); ax.set_xticklabels(ordre.index, rotation=90); ax.legend(); ax.set_title("Lits, présents simulés et présents visés, par service")
+plt.tight_layout(); plt.show()
+""")
+
+md("""
+### La tension simulée
+
+La tension est le taux d'occupation des lits conventionnels relevé chaque matin ; ses
+classes (bornes dans `classes_tension.csv`) pilotent les tirages des urgences. On
+vérifie que la série simulée visite bien les classes dans des proportions comparables
+à la référence (section 4 pour la série réelle, si elle est disponible).
+""")
+
+code("""
+tension = T["tension"].assign(date=lambda d: pd.to_datetime(d["date"]))
+fig, ax = plt.subplots(figsize=(11, 3.5))
+ax.plot(tension["date"], tension["tension"], lw=1)
+bornes = P["classes_tension"].fillna({"borne_inf": tension["tension"].min(), "borne_sup": tension["tension"].max()})
+for _, b in bornes.iterrows():
+    ax.axhspan(b["borne_inf"], b["borne_sup"], alpha=0.06, color="C1")
+    ax.text(tension["date"].iloc[0], (b["borne_inf"] + b["borne_sup"]) / 2, b["classe"], fontsize=8, va="center")
+ax.set_title("Tension simulée (occupation des lits conventionnels à 8 h)"); plt.tight_layout(); plt.show()
+print("part des jours par classe de tension :")
+display(tension["classe_tension"].value_counts(normalize=True).round(3).rename("part").to_frame().T)
+""")
+
+md("""
+### Le casemix
+
+Ce que l'hôpital simulé a pris en charge : les racines de GHM les plus fréquentes, la
+répartition des niveaux de sévérité, la pyramide des âges, et la durée moyenne de séjour
+par spécialité du RUM principal. À rapprocher de la section 3 (le casemix *des paramètres*).
+""")
+
+code("""
+rsa_ = rsa.assign(racine=rsa["ghm"].str[:5], niveau=rsa["gpcompx"], origine=np.where(rsa["prov"] == "5", "urgences", "programme"))
+lib = P["regroupements"].assign(lib=lambda d: d["libelle"].str.replace(r", niveau \\d$", "", regex=True)).drop_duplicates("racine_ghm").set_index("racine_ghm")["lib"] if "libelle" in P["regroupements"].columns else None
+
+top = rsa_.groupby(["racine", "origine"]).size().unstack(fill_value=0)
+top["total"] = top.sum(axis=1)
+top = top.sort_values("total", ascending=False).head(20)
+if lib is not None:
+    top.insert(0, "libelle", lib.reindex(top.index).str.slice(0, 60))
+display(top)
+
+fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
+rsa_["niveau"].value_counts().sort_index().plot.bar(ax=axes[0], color="#2a6f97", title="Niveaux de sévérité (gpcompx)")
+ages = pd.cut(rsa_["agean"], bins=[-1, 17, 64, 74, 200], labels=CLASSES_AGE)
+pd.crosstab(ages, rsa_["sexe"]).plot.bar(ax=axes[1], title="Séjours par classe d'âge et sexe (1 H, 2 F)")
+pd.crosstab(ages, rsa_["origine"], normalize="index").plot.bar(ax=axes[2], stacked=True, title="Part urgences / programme par âge")
+for ax in axes: ax.set_xlabel("")
+plt.tight_layout(); plt.show()
+
+principal = rum[rum["norum"] == rum["noseqrum"]][["nas", "spe_uma"]].merge(rsa_[["nas", "duree", "origine"]], on="nas")
+dms = principal.groupby(["spe_uma", "origine"])["duree"].mean().unstack().round(1)
+dms["n_sejours"] = principal.groupby("spe_uma").size()
+print("durée de séjour moyenne (nuitées) selon la spécialité du RUM principal :")
+display(dms.sort_values("n_sejours", ascending=False))
+
+retours = rsa_.groupby("ipp").size()
+print(f"{len(retours)} personnes pour {len(rsa_)} séjours ; {(retours > 1).mean():.1%} des personnes ont plusieurs séjours dans l'année")
+""")
+
+md("""
+### Pour finir : le tableau de contrôle
+
+`controle.csv` reprend, indicateur par indicateur, la cible issue des paramètres, la
+valeur recalculée sur les tables simulées et la fourchette admise. Les lignes hors
+fourchette sont celles sur lesquelles le simulateur reste à régler — ou celles dont la
+cible repose sur un petit effectif.
+""")
+
+code("""
+hors = CONTROLE[CONTROLE["dans_fourchette"] == False].sort_values("ecart_relatif", key=abs, ascending=False)
+print(f"{int(CONTROLE['dans_fourchette'].sum())} indicateurs sur {CONTROLE['dans_fourchette'].notna().sum()} dans leur fourchette ; hors fourchette :")
+hors[["indicateur", "service", "observe", "simule", "min", "max", "ecart_relatif"]].reset_index(drop=True)
 """)
 
 

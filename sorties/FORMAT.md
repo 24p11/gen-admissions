@@ -59,7 +59,7 @@ Conventions communes :
 | `no_visite` | la venue aux urgences d'origine, vide pour un séjour programmé |
 | `agean`, `sexe` | âge en années, sexe `1`/`2` |
 | `ghm`, `gpcompx` | GHM (racine + niveau), niveau de sévérité |
-| `d8eeue`, `d8soue` | entrée et sortie du séjour (date-heure) ; l'entrée d'un séjour venu des urgences est la fin du passage aux urgences |
+| `d8eeue`, `d8soue` | entrée et sortie du séjour (date-heure) ; l'entrée d'un séjour venu des urgences est la fin du passage aux urgences — sauf passage par l'UHCD : le séjour commence alors à l'entrée en UHCD (son premier RUM), pendant la venue, et la venue se termine à la sortie de l'UHCD, comme dans le réel où l'UHCD fait partie de la structure des urgences |
 | `duree` | nuitées (différence de dates calendaires) |
 | `echpmsi` | mode d'entrée du séjour : `8` domicile |
 | `prov` | provenance : `5` si venu des urgences, vide sinon |
