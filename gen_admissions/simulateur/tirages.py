@@ -61,6 +61,10 @@ class Patient:
     service_prevu: str = ""                    # le service tiré sur les candidats (programmé : la spécialité)
     transfert: bool = False                    # aucun service d'accueil dans l'hôpital
     niveau_premier_service: tuple[str, ...] = ()   # le niveau de repli utilisé pour A7
+    # identifiants, posés par le moteur
+    ipp: int | None = None
+    no_visite: int | None = None
+    nas: int | None = None
 
     @property
     def a_sejour(self) -> bool:

@@ -534,9 +534,17 @@ def ecrire(dossier: Path, graine: int) -> None:
     s_ref = s[(pd.to_datetime(s["date_entree"]).dt.year == ANNEE_RECENTE)]
 
     # --- structure et spécialités
-    presents = (passages_specialite(rum_hors_uhcd[(rum_hors_uhcd["nohop"] == SITE_A) & (pd.to_datetime(rum_hors_uhcd["date_entree"]).dt.year == ANNEE_RECENTE)], contexte=SITE)
-                .groupby("specialite")["duree_j"].sum() / NB_JOURS).round(1)
+    pass_a = passages_specialite(rum_hors_uhcd[(rum_hors_uhcd["nohop"] == SITE_A) & (pd.to_datetime(rum_hors_uhcd["date_entree"]).dt.year == ANNEE_RECENTE)], contexte=SITE)
+    presents = (pass_a.groupby("specialite")["duree_j"].sum() / NB_JOURS).round(1)
+    # lits ouverts : le 95e percentile des présents quotidiens (la décision par défaut du dictionnaire) ; l'UHCD garde ses lits
+    jours = pd.date_range(f"{ANNEE_RECENTE}-04-01", f"{ANNEE_RECENTE}-12-31", freq="D")
+    lits_ouverts = {}
+    for spe, g in pass_a.groupby("specialite"):
+        e = pd.to_datetime(g["date_entree"]).dt.normalize().value_counts().reindex(pd.date_range(f"{ANNEE_RECENTE}-01-01", f"{ANNEE_RECENTE}-12-31"), fill_value=0)
+        so = pd.to_datetime(g["date_sortie"]).dt.normalize().value_counts().reindex(e.index, fill_value=0)
+        lits_ouverts[spe] = int(np.ceil((e.cumsum() - so.cumsum()).loc[jours].quantile(0.95)))
     services = pd.DataFrame([{"service": c, "libelle": SERVICES[c][0], "specialite": c, "lits": SERVICES[c][2],
+                              "lits_ouverts": lits_ouverts.get(c) if c != "URG" else None,
                               "soins_critiques": ",".join(SERVICES[c][3]) if SERVICES[c][3] else None,
                               "age_min": SERVICES[c][4], "age_max": SERVICES[c][5], "sexe": SERVICES[c][6],
                               "presents_vises": presents.get(c) if SERVICES[c][1] in ("medecine", "chirurgie", "obstetrique", "pediatrie") else None}
@@ -546,7 +554,7 @@ def ecrire(dossier: Path, graine: int) -> None:
         for k in ("presents_vises",):
             if k in b:
                 b[k] = float(b[k])
-        for k in ("age_min", "age_max"):
+        for k in ("age_min", "age_max", "lits_ouverts"):
             if k in b:
                 b[k] = int(float(b[k]))
     structure = {

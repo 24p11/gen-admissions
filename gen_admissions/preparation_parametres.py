@@ -169,8 +169,15 @@ def tranche_heures(duree_h: pd.Series) -> pd.Series:
 
 def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categorie: Sequence[str] | None = None,
                colonne_effectif: str = "n", seuil: int | None = None, contexte: Sequence[str] | None = None,
-               seuil_lissage: int | None = None) -> pd.DataFrame:
+               seuil_lissage: int | None = None, colonnes_lissage: Sequence[str] = ()) -> pd.DataFrame:
     """Transforme des effectifs en parts par bloc, avec la règle des catégories rares.
+
+    ``colonnes_lissage`` : colonnes de catégorie à l'intérieur desquelles les petites lignes
+    mettent leur masse en commun. Sans elle, toutes les petites lignes d'un bloc sont mises
+    ensemble ; or quand les catégories sont composées (situation × gravité × racine), cela
+    déplace de la masse d'une situation vers une autre (les nombreuses petites lignes
+    « hospitalisation × racine » absorberaient celles des consultations rares). Avec
+    ``colonnes_lissage=["situation"]``, le lissage reste à l'intérieur de chaque situation.
 
     Les lignes sous le seuil d'un même bloc reçoivent chacune une part égale à
     leur masse totale divisée par leur nombre : le volume des cas rares est
@@ -209,8 +216,9 @@ def normaliser(df: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categori
     cles = [df[c] for c in colonnes_bloc]
     rare = df[colonne_effectif] < seuil_lissage   # lissage des parts, ligne par ligne, dans les blocs gardés
     df["observe"] = ~rare
-    masse_rare = df[colonne_effectif].where(rare, 0).groupby(cles).transform("sum")
-    nb_rare = rare.groupby(cles).transform("sum")
+    cles_lissage = cles + [df[c] for c in colonnes_lissage if c in df.columns]
+    masse_rare = df[colonne_effectif].where(rare, 0).groupby(cles_lissage).transform("sum")
+    nb_rare = rare.groupby(cles_lissage).transform("sum")
     df["part"] = np.where(rare, masse_rare / nb_rare.replace(0, np.nan), df[colonne_effectif]) / total
     if bloc_vide:
         df = df.drop(columns=["_bloc"])
@@ -250,7 +258,8 @@ def restreindre_services(table: pd.DataFrame, services: Iterable[str], colonnes_
 def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
                       colonnes_categorie: Sequence[str],
                       replis: Iterable[Sequence[str]] = (),
-                      seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
+                      seuil: int | None = None, contexte: Sequence[str] | None = None,
+                      colonnes_lissage: Sequence[str] = ()) -> pd.DataFrame:
     """Table de proportions avec ses lignes de repli.
 
     ``colonnes_bloc`` : contexte du niveau le plus fin ; ``colonnes_categorie`` :
@@ -262,10 +271,10 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
     """
     colonnes_bloc = avec_site(colonnes_bloc, effectifs, contexte)
     colonnes_categorie = list(colonnes_categorie)
-    morceaux = [normaliser(effectifs, colonnes_bloc, colonnes_categorie, seuil=seuil, contexte=[])]
+    morceaux = [normaliser(effectifs, colonnes_bloc, colonnes_categorie, seuil=seuil, contexte=[], colonnes_lissage=colonnes_lissage)]
     for sous_bloc in replis:
         sous_bloc = avec_site(sous_bloc, effectifs, contexte)
-        morceaux.append(normaliser(effectifs, sous_bloc, colonnes_categorie, seuil=seuil, contexte=[]))
+        morceaux.append(normaliser(effectifs, sous_bloc, colonnes_categorie, seuil=seuil, contexte=[], colonnes_lissage=colonnes_lissage))
     colonnes = colonnes_bloc + colonnes_categorie + ["part"]
     # les colonnes de bloc passent en texte avant la concaténation : les cases vides des replis
     # ne transforment pas un mois « 1 » en « 1.0 »
@@ -369,7 +378,7 @@ def services_vers_yaml(df: pd.DataFrame, chemin: str | None = None) -> str:
     (texte « rea,usc » ou « usi », transformé en liste), ``occupation_visee``,
     ``age_min``, ``age_max``, ``sexe``. Les cases vides sont omises.
     """
-    entiers = {"lits", "age_min", "age_max"}
+    entiers = {"lits", "lits_ouverts", "age_min", "age_max"}
     services: dict[str, dict] = {}
     for ligne in df.to_dict(orient="records"):
         code = str(ligne.pop("service"))
@@ -449,7 +458,8 @@ def effectifs_venues(v: pd.DataFrame, contexte: Sequence[str] | None = None) -> 
 def venues_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """venues_urgences.csv : bloc saison × mois × classe d'âge, repli saison × classe d'âge."""
     return table_proportions(effectifs, avec_saison(["periode", "classe_age"]), ["situation", "gravite", "racine_ghm"],
-                             replis=[avec_saison(["classe_age"])], seuil=seuil, contexte=contexte)
+                             replis=[avec_saison(["classe_age"])], seuil=seuil, contexte=contexte,
+                             colonnes_lissage=["situation"])     # le lissage ne déplace pas de masse entre situations
 
 
 # ---------------------------------------------------------------------------
@@ -891,7 +901,8 @@ def passages_specialite(rum: pd.DataFrame, contexte: Sequence[str] | None = None
     premieres = {c: (c, "first") for c in avec_site(["id_sejour", "specialite", "mode_entree", "classe_age"], df, contexte)}
     p = df.groupby("id_passage").agg(**premieres, date_entree=("date_entree", "min"), date_sortie=("date_sortie", "max"))
     p["duree_j"] = (p["date_sortie"] - p["date_entree"]).dt.total_seconds() / 86400
-    return p[avec_site(["id_sejour", "specialite", "mode_entree", "classe_age", "duree_j"], df, contexte)].reset_index(drop=True)
+    # les dates sont gardées : elles servent aux présents quotidiens par service (lits ouverts, cibles)
+    return p[avec_site(["id_sejour", "specialite", "mode_entree", "classe_age", "date_entree", "date_sortie", "duree_j"], df, contexte)].reset_index(drop=True)
 
 
 def durees_passage_depuis_passages(passages: pd.DataFrame, seuil: int | None = None, contexte: Sequence[str] | None = None) -> pd.DataFrame:

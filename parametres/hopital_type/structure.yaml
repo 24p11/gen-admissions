@@ -20,6 +20,7 @@ services:
     libelle: Réanimation et surveillance continue
     specialite: REA
     lits: 32
+    lits_ouverts: 23
     soins_critiques:
     - rea
     - usc
@@ -28,6 +29,7 @@ services:
     libelle: Soins intensifs cardiologiques
     specialite: USIC
     lits: 8
+    lits_ouverts: 12
     soins_critiques:
     - usi
     age_min: 18
@@ -35,6 +37,7 @@ services:
     libelle: Unité neuro-vasculaire
     specialite: UNV
     lits: 6
+    lits_ouverts: 8
     soins_critiques:
     - usi
     age_min: 18
@@ -42,78 +45,91 @@ services:
     libelle: Cardiologie
     specialite: CARDIO
     lits: 36
+    lits_ouverts: 42
     age_min: 18
     presents_vises: 32.6
   PNEUMO:
     libelle: Pneumologie
     specialite: PNEUMO
     lits: 30
+    lits_ouverts: 35
     age_min: 18
     presents_vises: 27.6
   MED_INT:
     libelle: Médecine interne
     specialite: MED_INT
     lits: 40
+    lits_ouverts: 45
     age_min: 18
     presents_vises: 35.5
   GERIA:
     libelle: Gériatrie aiguë
     specialite: GERIA
     lits: 40
+    lits_ouverts: 47
     age_min: 75
     presents_vises: 38.8
   NEURO:
     libelle: Neurologie
     specialite: NEURO
     lits: 30
+    lits_ouverts: 38
     age_min: 18
     presents_vises: 27.1
   GASTRO:
     libelle: Gastro-entérologie
     specialite: GASTRO
     lits: 16
+    lits_ouverts: 20
     age_min: 18
     presents_vises: 12.1
   ONCO:
     libelle: Oncologie-hématologie
     specialite: ONCO
     lits: 30
+    lits_ouverts: 37
     age_min: 18
     presents_vises: 27.7
   MED_POLY:
     libelle: Médecine polyvalente post-urgences
     specialite: MED_POLY
     lits: 40
+    lits_ouverts: 41
     age_min: 18
     presents_vises: 32.6
   ORTHO:
     libelle: Orthopédie-traumatologie
     specialite: ORTHO
     lits: 36
+    lits_ouverts: 41
     age_min: 18
     presents_vises: 30.2
   CHIR_DIG:
     libelle: Chirurgie digestive
     specialite: CHIR_DIG
     lits: 32
+    lits_ouverts: 36
     age_min: 18
     presents_vises: 26.1
   URO:
     libelle: Urologie
     specialite: URO
     lits: 22
+    lits_ouverts: 28
     age_min: 18
     presents_vises: 18.5
   GYN_OBS:
     libelle: Gynécologie-obstétrique
     specialite: GYN_OBS
     lits: 34
+    lits_ouverts: 37
     sexe: F
     presents_vises: 25.7
   PED:
     libelle: Pédiatrie
     specialite: PED
     lits: 16
+    lits_ouverts: 16
     age_max: 17
     presents_vises: 9.9
 urgences:
