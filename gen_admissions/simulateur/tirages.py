@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -83,6 +85,7 @@ class Tireur:
         self.p = p
         self.rng = rng
         self.seuil_uhcd_h = float(p.structure.urgences.get("seuil_uhcd_h", 6))
+        self._casemix_cache: dict[str, Ligne] = {}
 
     # -- outils ------------------------------------------------------------
 
@@ -171,20 +174,51 @@ class Tireur:
 
     # -- B : une entrée programmée --------------------------------------------
 
+    def casemix_service(self, specialite: str) -> Ligne:
+        """B3 : le casemix d'un service, restreint aux classes d'âge et renormalisé.
+
+        Le casemix observé peut contenir des classes d'âge que la structure interdit au service (une
+        gériatrie à 75 ans et plus qui a reçu quelques 65-74 ans) : ces lignes sont retirées une fois pour
+        toutes. Si rien ne subsiste (service absent du casemix, ou dont toutes les classes sont interdites),
+        on se replie sur le casemix de toutes les spécialités restreint aux classes acceptées, avec un
+        avertissement.
+        """
+        if specialite in self._casemix_cache:
+            return self._casemix_cache[specialite]
+        p = self.p
+        service = p.structure.services[specialite]
+        ligne = p.casemix.chercher(specialite=specialite)
+        cats = [(c, w) for c, w in zip(ligne.categories, ligne.parts) if service.accepte(c[0])] if ligne is not None else []
+        if not cats:
+            tout: dict[tuple, float] = {}
+            for (sp,) in p.casemix.blocs():
+                l = p.casemix.chercher(specialite=sp)
+                for c, w in zip(l.categories, l.parts):
+                    if service.accepte(c[0]):
+                        tout[c] = tout.get(c, 0.0) + float(w)
+            cats = list(tout.items())
+            presentes = sorted({c[0] for c in ligne.categories}) if ligne is not None else []
+            warnings.warn(f"casemix de {specialite} : {'absent' if ligne is None else 'classes ' + str(presentes) + ' toutes refusées'} "
+                          f"(age_min={service.age_min}, age_max={service.age_max}) ; repli sur le casemix de toutes les spécialités")
+        if not cats:
+            raise ValueError(f"aucune classe d'âge du casemix n'est acceptée par {specialite} (age_min={service.age_min}, age_max={service.age_max})")
+        parts = np.array([w for _, w in cats], dtype=float)
+        parts /= parts.sum()
+        self._casemix_cache[specialite] = Ligne(categories=[c for c, _ in cats], parts=parts, cumul=np.cumsum(parts))
+        return self._casemix_cache[specialite]
+
     def entree_programmee(self, specialite: str) -> Patient:
         """B3 : un patient programmé dans cette spécialité (classe d'âge et racine depuis le casemix)."""
         p, rng = self.p, self.rng
         service = p.structure.services[specialite]
-        # le casemix observé peut contenir des classes d'âge que la structure interdit au service
-        # (une gériatrie à 75 ans et plus qui a reçu quelques 65-74 ans) : on retire jusqu'à tomber juste
-        for _ in range(50):
-            classe_age, racine = p.casemix.tirer(rng, specialite=specialite)
-            if service.accepte(classe_age):
-                break
-        else:
-            raise ValueError(f"le casemix de {specialite} ne contient aucune classe d'âge acceptée par le service")
+        classe_age, racine = self.casemix_service(specialite).tirer(rng)
         sexe = service.sexe or p.sexe_racine.tirer(rng, racine_ghm=racine)
-        patient = Patient(origine="programme", classe_age=classe_age, age=self.age_dans_classe(classe_age), sexe=sexe,
+        age = self.age_dans_classe(classe_age)
+        if service.age_min is not None:
+            age = max(age, service.age_min)
+        if service.age_max is not None:
+            age = min(age, service.age_max)
+        patient = Patient(origine="programme", classe_age=classe_age, age=age, sexe=sexe,
                           racine_ghm=racine, service_prevu=specialite, services_candidats=[(specialite, 1.0, 1)])
         self.completer_sejour(patient)
         return patient

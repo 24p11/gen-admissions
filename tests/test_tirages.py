@@ -125,3 +125,22 @@ def test_suite_parcours_et_supplement(p):
     assert set(suites) <= set(p.structure.services) | {"sortie"}
     assert suites["sortie"] > 0
     assert all(0 <= t.supplement_rang2_h("haute") for _ in range(100))
+
+
+def test_casemix_restreint_aux_classes_du_service(p):
+    """Un service dont le casemix ne contient aucune classe acceptée se replie sur le casemix global, sans erreur."""
+    import copy, warnings
+    from gen_admissions.simulateur.tirages import Tireur
+    q = copy.copy(p)
+    q.structure = copy.deepcopy(p.structure)
+    s = q.structure.services["PED"]
+    q.structure.services["PED"] = type(s)(**{**s.__dict__, "age_min": 90, "age_max": None})   # une « pédiatrie » qui n'accepte que les 90 ans et plus
+    t = Tireur(q, np.random.default_rng(3))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        pat = t.entree_programmee("PED")
+    assert pat.classe_age == "75+" and pat.age >= 90
+    assert any("repli" in str(x.message) for x in w)
+    # et un service ordinaire garde son casemix, avec l'âge borné par age_min
+    s2 = q.structure.services["GERIA"]
+    assert all(t.entree_programmee("GERIA").age >= (s2.age_min or 0) for _ in range(30))
