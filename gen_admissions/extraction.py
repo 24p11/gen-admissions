@@ -311,10 +311,15 @@ def racine_depot(depart: str | Path | None = None) -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def config_locale(depart: str | Path | None = None) -> dict:
+def config_locale(fichier: str | Path | None = NOM_CONFIG_LOCALE, depart: str | Path | None = None) -> dict:
     """Les réglages propres à la machine, lus dans ``config_locale.yaml`` à la racine du dépôt
     (fichier non suivi par git ; modèle : ``config_locale.exemple.yaml``). Sans fichier, les
     valeurs par défaut du dépôt : l'hôpital fictif, un dossier ``data`` à la racine, pas de site.
+
+    ``fichier`` : le fichier de réglages à lire (chemin absolu, ou relatif à la racine du dépôt) ;
+    ``None`` ignore tout fichier et rend les valeurs par défaut — c'est le moyen de travailler sur
+    l'hôpital fictif alors qu'un ``config_locale.yaml`` pointe vers les données réelles :
+    ``config_locale(None)``. ``depart`` : d'où remonter pour trouver la racine du dépôt (dossier courant).
 
     Clés : ``dossier_parametres`` (les 22 fichiers), ``dossier_data`` (requêtes mémorisées en
     parquet), ``site`` (le site exporté, ou None), ``fichier_tension`` (série quotidienne,
@@ -324,10 +329,13 @@ def config_locale(depart: str | Path | None = None) -> dict:
 
     racine = racine_depot(depart)
     valeurs = {"dossier_parametres": "parametres/hopital_type", "dossier_data": "data", "site": None, "fichier_tension": None}
-    chemin = racine / NOM_CONFIG_LOCALE
-    if chemin.exists():
-        with open(chemin, encoding="utf-8") as f:
-            valeurs.update({k: v for k, v in (yaml.safe_load(f) or {}).items() if v is not None})
+    if fichier is not None:
+        chemin = Path(fichier) if Path(fichier).is_absolute() else racine / fichier
+        if chemin.exists():
+            with open(chemin, encoding="utf-8") as f:
+                valeurs.update({k: v for k, v in (yaml.safe_load(f) or {}).items() if v is not None})
+        elif str(fichier) != NOM_CONFIG_LOCALE:
+            raise FileNotFoundError(f"fichier de réglages introuvable : {chemin}")
     for cle in ("dossier_parametres", "dossier_data", "fichier_tension"):
         if valeurs[cle] is not None:
             valeurs[cle] = (racine / Path(valeurs[cle])).resolve() if not Path(valeurs[cle]).is_absolute() else Path(valeurs[cle])

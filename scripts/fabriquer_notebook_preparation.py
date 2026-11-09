@@ -65,7 +65,7 @@ print(REGLAGES)
 
 # Les chemins propres à la machine viennent de config_locale.yaml à la racine du dépôt (non suivi par
 # git ; modèle : config_locale.exemple.yaml). Sans ce fichier : l'hôpital fictif du dépôt et un dossier data/.
-CONF = config_locale()
+CONF = config_locale()          # config_locale(None) : ignorer config_locale.yaml et travailler sur l'hôpital fictif du dépôt
 DOSSIER_SORTIE = CONF["dossier_parametres"]        # où écrire les 22 fichiers
 DOSSIER_DATA = CONF["dossier_data"]                # résultats de requêtes mémorisés en parquet (lire_sql / memoriser)
 NOHOP = CONF["site"]                               # le site exporté (None : pas de filtre de site à l'export)

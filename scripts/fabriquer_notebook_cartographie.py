@@ -58,14 +58,16 @@ md("""
 
 Les chemins viennent de `config_locale.yaml` à la racine du dépôt (fichier propre à la
 machine, non suivi par git ; modèle : `config_locale.exemple.yaml`). Sans ce fichier, le
-notebook tourne sur l'hôpital fictif du dépôt. `fichier_tension` est facultatif : la série
+notebook tourne sur l'hôpital fictif du dépôt. Pour revenir à l'hôpital fictif alors qu'un
+`config_locale.yaml` pointe vers les données réelles : `config_locale(None)` ; pour lire un
+autre fichier de réglages : `config_locale("mon_fichier.yaml")`. `fichier_tension` est facultatif : la série
 quotidienne de la tension n'est pas dans les 22 fichiers (seulement ses bornes) ; si un
 fichier parquet avec les colonnes `date` et `tension` est indiqué et présent, le notebook
 trace la série, sinon il passe.
 """)
 
 code("""
-CONF = config_locale()
+CONF = config_locale()          # config_locale(None) : ignorer config_locale.yaml et travailler sur l'hôpital fictif du dépôt
 DOSSIER = CONF["dossier_parametres"]
 FICHIER_TENSION = CONF["fichier_tension"] or (DOSSIER / "tension.parquet")
 # pour produire tension.parquet, dans le notebook de préparation, après la cellule classes_tension :
