@@ -473,7 +473,11 @@ def effectifs_venues(v: pd.DataFrame, contexte: Sequence[str] | None = None) -> 
     avec_sejour = v["situation"].isin(REGLAGES.situations_avec_sejour)
     v["gravite"] = np.where(avec_sejour, "", gravite_ccmu(v["ccmu"]))
     v["racine_ghm"] = np.where(avec_sejour, v["ghm"].astype(str).str[:5], "")
-    v = v[~(avec_sejour & v["ghm"].isna())]
+    # séjours sans GHM ou en CMD 90 (erreur de groupage) : pas de niveau ni de durée possibles, exclus
+    erreur = avec_sejour & (v["ghm"].isna() | v["ghm"].astype(str).str.startswith("90"))
+    if erreur.any():
+        print(f"{erreur.sum()} venues hospitalisées sans GHM exploitable (absent ou CMD 90), exclues")
+    v = v[~erreur]
     return v.groupby(avec_site(avec_saison(REGLAGES.colonnes_venues), v, contexte)).size().reset_index(name="n")
 
 

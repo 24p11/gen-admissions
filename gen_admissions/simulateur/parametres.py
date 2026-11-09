@@ -395,6 +395,24 @@ FICHIERS_NOMBRES = {
 }
 
 
+def _sans_racines_inconnues(t: pd.DataFrame, connues: set[str], colonnes_bloc: list[str]) -> tuple[pd.DataFrame, set[str]]:
+    """Retire d'une table qui tire une racine (venues, casemix) les lignes dont la racine n'est pas dans
+    ``connues`` (les racines de ``niveaux.csv``), et renormalise les parts de chaque bloc. Les lignes sans
+    racine (venues sans séjour) sont conservées. Rend la table et l'ensemble des racines retirées."""
+    if "racine_ghm" not in t.columns or "part" not in t.columns:
+        return t, set()
+    racine = t["racine_ghm"].fillna("").astype(str)
+    inconnue = racine.ne("") & ~racine.isin(connues)
+    if not inconnue.any():
+        return t, set()
+    retirees = set(racine[inconnue])
+    t = t[~inconnue].copy()
+    t["part"] = pd.to_numeric(t["part"])
+    blocs = [c for c in colonnes_bloc if c in t.columns]
+    t["part"] = t["part"] / t.groupby(blocs, dropna=False)["part"].transform("sum")
+    return t, retirees
+
+
 @dataclass
 class Parametres:
     dossier: Path
@@ -422,6 +440,7 @@ class Parametres:
     cibles: pd.DataFrame
     racines_transferees: set[str]         # aucune spécialité d'accueil conventionnelle dans l'hôpital
     saisons: list[str]
+    racines_inconnues: set[str] = field(default_factory=set)   # racines tirables mais absentes des tables par GHM, retirées
 
     # -- chargement ---------------------------------------------------------
 
@@ -456,17 +475,25 @@ class Parametres:
 
         arrivees_t = lire("profil_arrivees_urgences.csv")
         arrivees = {s: (ProfilSemaine(g), ProfilMois(g)) for s, g in arrivees_t.groupby("saison")}
-        venues_t = lire("venues_urgences.csv")
+
+        # racines inconnues des tables par GHM (séjours non groupés, CMD 90, racine absente de la base de
+        # référence) : un séjour ne peut pas être construit sans niveau ni durée, on les retire des tables
+        # qui tirent une racine (venues, casemix) et on renormalise chaque bloc
+        niveaux_t = lire("niveaux.csv")
+        connues = set(niveaux_t["racine_ghm"])
+        venues_t, inconnues_v = _sans_racines_inconnues(lire("venues_urgences.csv"), connues, ["saison", "periode", "classe_age"])
+        casemix_t, inconnues_c = _sans_racines_inconnues(lire("casemix.csv"), connues, ["specialite"])
+        racines_inconnues = inconnues_v | inconnues_c
 
         return cls(
             dossier=dossier, structure=structure, specialites=specialites, regroupements=lire("regroupements_ghm.csv"),
-            niveaux=TableTirage(lire("niveaux.csv"), ["racine_ghm", "classe_age"], ["niveau"]),
+            niveaux=TableTirage(niveaux_t, ["racine_ghm", "classe_age"], ["niveau"]),
             durees_ghm=TableTirage(lire("durees_ghm.csv"), ["ghm", "classe_age_duree"], ["duree_j"], annexes=["moyenne_60plus"]),
             soins_critiques=SoinsCritiques(lire("soins_critiques_ghm.csv")),
             sexe_racine=TableTirage(lire("sexe_racine.csv"), ["racine_ghm"], ["sexe"]),
             sorties=TableTirage(lire("sorties.csv"), ["racine_ghm", "niveau", "classe_age"], ["mode_sortie"]),
             premier_service=TableTirage(ps, ["racine_ghm", "classe_age"], ["specialite"], annexes=["rang"]),
-            casemix=TableTirage(lire("casemix.csv"), ["specialite"], ["classe_age", "racine_ghm"]),
+            casemix=TableTirage(casemix_t, ["specialite"], ["classe_age", "racine_ghm"]),
             table_passage=TableTirage(tp, ["niveau", "service", "precedent", "classe_age", "mode_entree"], ["suite"], annexes=["rang"]),
             durees_passage=DureesPassage(lire("durees_passage.csv")),
             venues=TableTirage(venues_t, ["saison", "periode", "classe_age"], ["situation", "gravite", "racine_ghm"]),
@@ -480,6 +507,7 @@ class Parametres:
             profil_sorties=ProfilSemaine(lire("profil_sorties.csv")),
             cibles=lire("cibles.csv"),
             racines_transferees=racines_transferees,
+            racines_inconnues=racines_inconnues,
             saisons=sorted(set(venues_t["saison"]) & set(arrivees)),
         )
 
@@ -507,7 +535,9 @@ class Parametres:
             f"{st.urgences.get('passages_par_an')} passages par an",
             f"racines : {len(self.niveaux.blocs(('racine_ghm',)))} dans niveaux, {len(self.premier_service.blocs(('racine_ghm',)))} "
             f"avec un service d'accueil, {len(self.racines_transferees)} transférées"
-            + (f" ({', '.join(sorted(self.racines_transferees)[:8])})" if self.racines_transferees else ""),
+            + (f" ({', '.join(sorted(self.racines_transferees)[:8])})" if self.racines_transferees else "")
+            + (f" ; {len(self.racines_inconnues)} inconnues des tables par GHM, retirées des venues et du casemix "
+               f"({', '.join(sorted(self.racines_inconnues)[:8])})" if self.racines_inconnues else ""),
             f"premier service : {len(self.premier_service)} lignes après restriction, spécialités "
             f"{sorted(set(c[0] for l in self.premier_service._lignes[self.premier_service.niveaux[0]].values() for c in l.categories))}",
             f"table de passage : {len(self.table_passage)} lignes après restriction, niveaux {self.table_passage.niveaux}",

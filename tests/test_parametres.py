@@ -138,3 +138,19 @@ def test_tirages_de_base(p):
     assert p.sexe_racine.tirer(rng, racine_ghm=racine) in ("M", "F")
     duree = p.durees_ghm.tirer(rng, ghm=racine + "1", classe_age_duree="60+")
     assert duree == "60+" or int(duree) >= 0
+
+
+def test_racines_inconnues_retirees(tmp_path):
+    """Une racine tirable (venues, casemix) absente de niveaux.csv est retirée et le bloc renormalisé."""
+    import shutil
+    import pandas as pd
+    dst = tmp_path / "hop"
+    shutil.copytree(DOSSIER, dst)
+    v = pd.read_csv(dst / "venues_urgences.csv", dtype=str, keep_default_na=False)
+    v.loc[len(v)] = ["2024-2025", "1", "75+", "hospitalisation", "", "90Z00", "0.5"]
+    v.to_csv(dst / "venues_urgences.csv", index=False)
+    q = Parametres.charger(dst, verifier=False)
+    assert q.racines_inconnues == {"90Z00"}
+    ligne = q.venues.chercher(saison="2024-2025", periode="1", classe_age="75+")
+    assert abs(float(ligne.parts.sum()) - 1) < 1e-9 and all(c[2] != "90Z00" for c in ligne.categories)
+    assert "inconnues" in q.resume()

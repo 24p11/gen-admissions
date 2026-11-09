@@ -15,6 +15,12 @@ le code doivent donc toujours dire la même chose.
 
 ## 1. Conventions communes à tous les fichiers
 
+**Racines de GHM.** Les tables par GHM (`niveaux.csv` en tête) définissent les racines que le
+simulateur sait construire. Une racine présente dans `venues_urgences.csv` ou `casemix.csv` mais
+absente de `niveaux.csv` (séjour non groupé, CMD 90 « erreur », racine absente de la base de
+référence) est retirée au chargement, le bloc est renormalisé, et le résumé des paramètres les
+liste. À l'extraction, les venues hospitalisées sans GHM exploitable sont exclues d'emblée.
+
 **Format.** Fichiers CSV, séparateur virgule, point décimal, encodage UTF-8,
 une ligne d'en-tête. Les proportions sont arrondies à six décimales. Le
 fichier de structure est en YAML.
