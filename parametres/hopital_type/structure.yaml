@@ -49,61 +49,61 @@ services:
     specialite: PNEUMO
     lits: 30
     age_min: 18
-    presents_vises: 27.2
+    presents_vises: 27.6
   MED_INT:
     libelle: Médecine interne
     specialite: MED_INT
     lits: 40
     age_min: 18
-    presents_vises: 36.5
+    presents_vises: 35.5
   GERIA:
     libelle: Gériatrie aiguë
     specialite: GERIA
     lits: 40
     age_min: 75
-    presents_vises: 41.9
+    presents_vises: 38.8
   NEURO:
     libelle: Neurologie
     specialite: NEURO
     lits: 30
     age_min: 18
-    presents_vises: 27.0
+    presents_vises: 27.1
   GASTRO:
     libelle: Gastro-entérologie
     specialite: GASTRO
     lits: 16
     age_min: 18
-    presents_vises: 11.5
+    presents_vises: 12.1
   ONCO:
     libelle: Oncologie-hématologie
     specialite: ONCO
     lits: 30
     age_min: 18
-    presents_vises: 28.8
+    presents_vises: 27.7
   MED_POLY:
     libelle: Médecine polyvalente post-urgences
     specialite: MED_POLY
     lits: 40
     age_min: 18
-    presents_vises: 31.5
+    presents_vises: 32.6
   ORTHO:
     libelle: Orthopédie-traumatologie
     specialite: ORTHO
     lits: 36
     age_min: 18
-    presents_vises: 29.8
+    presents_vises: 30.2
   CHIR_DIG:
     libelle: Chirurgie digestive
     specialite: CHIR_DIG
     lits: 32
     age_min: 18
-    presents_vises: 27.0
+    presents_vises: 26.1
   URO:
     libelle: Urologie
     specialite: URO
     lits: 22
     age_min: 18
-    presents_vises: 18.4
+    presents_vises: 18.5
   GYN_OBS:
     libelle: Gynécologie-obstétrique
     specialite: GYN_OBS

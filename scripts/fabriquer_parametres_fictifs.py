@@ -286,6 +286,10 @@ def generer_sejours(rng: np.random.Generator, site: str, annee: int, venues_hosp
     s["premier_service"] = ""
     for (r, ca), g in s.groupby(["racine_ghm", "classe_age"]):
         serv = services_du_site(site, RACINES[r][6])
+        # les contraintes d'âge de la structure (gériatrie à partir de 75 ans, pédiatrie jusqu'à 17)
+        bas = int(ca.rstrip("+").split("-")[0]); haut = None if ca.endswith("+") else int(ca.split("-")[1])
+        serv = {k: v for k, v in serv.items()
+                if (SERVICES[k][4] is None or haut is None or haut >= SERVICES[k][4]) and (SERVICES[k][5] is None or bas <= SERVICES[k][5])} or serv
         if ca == "75+" and "GERIA" in SERVICES_SITE[site] and any(SERVICES[x][1] == "medecine" for x in serv):
             serv = dict(serv); serv["GERIA"] = serv.get("GERIA", 0) + 0.20 * sum(serv.values())
         if ca == "0-17" and "PED" in SERVICES_SITE[site]:
@@ -344,8 +348,11 @@ def generer_sejours(rng: np.random.Generator, site: str, annee: int, venues_hosp
     rums = pd.DataFrame(lignes, columns=["nohop", "id_sejour", "rang", "specialite", "date_entree", "date_sortie", "mode_entree", "classe_age", "uhcd"])
     # sortie : heure sur le profil des sorties (sauf soins critiques, à toute heure)
     h = heures_profil(rng, n, PROFIL_HEURE_SORTIE)
-    s["date_sortie"] = pd.to_datetime(s["date_sortie"]).dt.normalize() + pd.to_timedelta(h, unit="h")
-    s["duree_j"] = (s["date_sortie"] - pd.to_datetime(s["date_entree"])).dt.total_seconds() / 86400
+    sortie = pd.to_datetime(s["date_sortie"]).dt.normalize() + pd.to_timedelta(h, unit="h")
+    entree = pd.to_datetime(s["date_entree"])
+    sortie = sortie.where(sortie > entree + pd.Timedelta(hours=2), sortie + pd.Timedelta(days=1))   # jamais avant l'entrée
+    s["date_sortie"] = sortie
+    s["duree_j"] = (s["date_sortie"] - entree).dt.total_seconds() / 86400
     return s, rums
 
 
