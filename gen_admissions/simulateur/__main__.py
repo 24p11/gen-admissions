@@ -1,9 +1,12 @@
 """Ligne de commande du simulateur.
 
-    python -m gen_admissions [dossier_parametres] [--sortie DOSSIER] [--graine N]
+    python -m gen_admissions [dossier_parametres] [--nom NOM | --sortie DOSSIER] [--graine N]
                              [--duree J] [--chauffe J] [--marge J] [--facteur-lits F] [--sans-csv]
 
 (``python -m gen_admissions.simulateur`` et la commande ``gen-admissions`` sont équivalents.)
+
+Sans ``--sortie``, les sorties vont dans ``<dossier_parametres>/simulations/<nom>`` (dans ``sorties/<nom>``
+à la racine du dépôt pour l'hôpital fictif) ; ``--nom`` vaut par défaut ``<etablissement>_g<graine>``.
 
 Sans dossier de paramètres, celui de ``config_locale.yaml`` (sinon l'hôpital fictif).
 Écrit les tables de sortie, ``tension.parquet``, ``resume.yaml`` et ``controle.csv``,
@@ -18,7 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from gen_admissions.extraction import config_locale
+from gen_admissions.extraction import config_locale, dossier_simulation
 
 from .controle import bilan, tableau_controle
 from .export import ecrire
@@ -29,7 +32,8 @@ from .parametres import Parametres
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m gen_admissions", description="Simulateur de flux hospitaliers")
     ap.add_argument("dossier_parametres", nargs="?", help="les 22 fichiers de paramètres (défaut : config_locale.yaml, sinon l'hôpital fictif)")
-    ap.add_argument("--sortie", help="dossier des sorties (défaut : sorties/<etablissement>_<graine>)")
+    ap.add_argument("--nom", help="nom de la simulation (défaut : <etablissement>_g<graine>) ; sorties dans <dossier_parametres>/simulations/<nom>")
+    ap.add_argument("--sortie", help="dossier des sorties, s'il faut l'imposer (remplace --nom)")
     ap.add_argument("--graine", type=int)
     ap.add_argument("--duree", type=int, help="jours simulés (période utile)")
     ap.add_argument("--chauffe", type=int)
@@ -43,7 +47,8 @@ def main(argv: list[str] | None = None) -> int:
     p = Parametres.charger(dossier)
     print(p.resume(), "\n")
     sim = Simulation(p, graine=args.graine, duree_jours=args.duree, chauffe_jours=args.chauffe, marge_fin_jours=args.marge, facteur_lits=args.facteur_lits)
-    sortie = Path(args.sortie) if args.sortie else conf["racine"] / "sorties" / f"{p.structure.etablissement}_{sim.graine}"
+    nom = args.nom or f"{p.structure.etablissement}_g{sim.graine}"
+    sortie = Path(args.sortie) if args.sortie else dossier_simulation(dossier, nom, conf["racine"])
     t0 = time.time()
     sim.lancer()
     print(f"simulation de {sim.horizon_h / 24:.0f} jours en {time.time() - t0:.0f} s\n")

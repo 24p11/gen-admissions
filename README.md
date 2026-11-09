@@ -40,10 +40,12 @@ quotidienne de la tension, `resume.yaml` (graine, période, capacités, volumes)
 Un exemple d'un an est versionné dans `sorties/exemple/` (parquet, contrôle et
 résumé ; relancer la commande ci-dessus pour obtenir les CSV).
 
-Options : `--chauffe` et `--marge` (jours de chauffe et de fin, retirés des
-sorties), `--facteur-lits` (bornes de tension ajustées à un hôpital agrandi),
-`--sans-csv`. Sans dossier de paramètres, la commande lit celui indiqué dans
-`config_locale.yaml` (voir plus bas), sinon l'hôpital fictif.
+Options : `--nom` (nom de la simulation ; sans `--sortie`, les sorties vont dans
+`<dossier_parametres>/simulations/<nom>`, ou `sorties/<nom>` à la racine du dépôt
+pour l'hôpital fictif), `--chauffe` et `--marge` (jours de chauffe et de fin,
+retirés des sorties), `--facteur-lits` (bornes de tension ajustées à un hôpital
+agrandi), `--sans-csv`. Sans dossier de paramètres, la commande lit celui indiqué
+dans `config_locale.yaml` (voir plus bas), sinon l'hôpital fictif.
 
 ## Ce que le simulateur produit
 

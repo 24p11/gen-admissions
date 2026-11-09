@@ -558,16 +558,19 @@ entièrement dans la période utile sont écrits. Elle écrit dans le dossier de
   contrôle que la commande affiche aussi à l'écran.
 
 La cellule ci-dessous lance la commande depuis le notebook, avec le même interpréteur
-Python que le noyau. Le dossier de sortie est `sorties/essai` à la racine du dépôt pour
-l'hôpital fictif, `<dossier_parametres>/sorties/essai` sinon (donc dans `prod/`, hors git).
+Python que le noyau. Les sorties vont dans `<dossier_parametres>/simulations/<nom de la simulation>`
+(donc dans `prod/`, hors git, pour des paramètres réels), ou dans `sorties/<nom>` à la racine du
+dépôt pour l'hôpital fictif — la même règle que la ligne de commande (`dossier_simulation`).
 Compter une trentaine de secondes pour un an ; `--sans-csv` l'accélère un peu.
 """)
 
 code("""
 import subprocess, sys
 
+from gen_admissions.extraction import dossier_simulation
 GRAINE, DUREE = 42, 365
-SORTIE_SIM = RACINE / "sorties" / "essai" if RACINE / "parametres" in DOSSIER.parents else DOSSIER / "sorties" / "essai"
+NOM_SIMULATION = f"{S['etablissement']}_g{GRAINE}"          # le dossier de sortie : <dossier_parametres>/simulations/<nom> (sorties/<nom> pour le fictif)
+SORTIE_SIM = dossier_simulation(DOSSIER, NOM_SIMULATION, RACINE)
 
 commande = [sys.executable, "-m", "gen_admissions", str(DOSSIER), "--sortie", str(SORTIE_SIM), "--duree", str(DUREE), "--graine", str(GRAINE)]
 print(" ".join(commande), "\\n")

@@ -345,6 +345,20 @@ def config_locale(fichier: str | Path | None = NOM_CONFIG_LOCALE, depart: str | 
     return valeurs
 
 
+def dossier_simulation(dossier_parametres: str | Path, nom: str, racine: str | Path | None = None) -> Path:
+    """Où écrire les sorties d'une simulation nommée ``nom`` faite sur ce dossier de paramètres.
+
+    Règle : ``<dossier_parametres>/simulations/<nom>`` — donc dans ``prod/`` pour des paramètres réels,
+    hors dépôt — sauf pour un dossier du dépôt lui-même (``parametres/…``, l'hôpital fictif), où l'on
+    écrit dans ``<racine>/sorties/<nom>`` pour ne pas mêler sorties et paramètres versionnés.
+    """
+    dossier = Path(dossier_parametres).resolve()
+    racine = racine_depot(racine)
+    if (racine / "parametres") in dossier.parents or dossier == racine / "parametres":
+        return racine / "sorties" / nom
+    return dossier / "simulations" / nom
+
+
 # ---------------------------------------------------------------------------
 # Mémorisation des résultats de requête (fichiers parquet)
 # ---------------------------------------------------------------------------
