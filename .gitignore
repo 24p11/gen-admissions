@@ -9,6 +9,7 @@ dist/
 # sorties de simulation (sauf l'exemple versionné)
 sorties/*
 !sorties/exemple/
+!sorties/FORMAT.md
 sorties/exemple/*.parquet
 prod/
 
