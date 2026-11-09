@@ -105,6 +105,21 @@ verifier_dossier(DOSSIER_SORTIE, [])
 '''
 
 
+CELLULE_ENTREES_PAR_JOUR = '''# Entrées par jour sur l'année de référence — le même graphique que la cartographie trace sur les sorties
+# simulées (section 6), avec la même fonction, pour comparer réel et simulé à l'œil : niveau, saison, semaine.
+# Suppose `v` (les venues de l'année de référence, avec `date_entree`) et `rum` (les RUM hors UHCD de la même
+# année, avec `id_sejour`, `rang`, `date_entree`, `mode_entree`). Les séjours d'une année PMSI sont ceux qui
+# se terminent dans l'année : les derniers jours de décembre sont donc sous-comptés (séjours non encore clos).
+from gen_admissions.graphiques import entrees_par_jour, tracer_entrees_par_jour
+
+v_site = v[v["nohop"] == NOHOP]
+premiers_site = rum[rum["nohop"] == NOHOP].sort_values(["id_sejour", "rang"]).drop_duplicates("id_sejour")
+entrees_reel = entrees_par_jour(v_site["date_entree"], premiers_site["date_entree"], premiers_site["mode_entree"].eq("urgences"),
+                                debut=f"20{AN_REF}-01-01", fin=f"20{AN_REF + 1}-01-01")
+semaine_reel = tracer_entrees_par_jour(entrees_reel, f"Entrées par jour, année 20{AN_REF}, site {NOHOP} (observé)")
+'''
+
+
 def decouper(texte: str) -> tuple[list[str], list[tuple[int, str, list[str]]]]:
     """Sépare l'introduction des blocs (niveau de titre, titre, lignes du corps)."""
     blocs: list[tuple[int, str, list[str]]] = []
@@ -168,6 +183,8 @@ def main() -> None:
             nb.cells.append(new_markdown_cell(
                 f'<a id="{ancre(titre_bloc)}"></a>\n\n### {titre_bloc}\n\n{corps(lignes)}\n\n[↑ récapitulatif](#recap)'))
             nb.cells.append(new_code_cell(f"# {titre_bloc}\n"))
+            if ancre(titre_bloc) == "venues_urgences":
+                nb.cells.append(new_code_cell(CELLULE_ENTREES_PAR_JOUR))
 
     nb.cells.append(new_markdown_cell(CELLULE_BILAN_MD))
     nb.cells.append(new_code_cell(CELLULE_BILAN_CODE))

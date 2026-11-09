@@ -687,25 +687,11 @@ est la moyenne glissante sur 7 jours, qui efface la semaine pour laisser voir la
 """)
 
 code("""
-jour = lambda s: s.dt.normalize()
-entrees = pd.DataFrame({
-    "venues aux urgences": rpu.groupby(jour(rpu["entree"])).size(),
-    "séjours entrés par les urgences": rsa[rsa["prov"] == "5"].groupby(jour(rsa["d8eeue"])).size(),
-    "séjours programmés": rsa[rsa["prov"] != "5"].groupby(jour(rsa["d8eeue"])).size(),
-}).reindex(pd.date_range(DEBUT, FIN - pd.Timedelta(days=1)), fill_value=0)
+from gen_admissions.graphiques import entrees_par_jour, tracer_entrees_par_jour
 
-fig, axes = plt.subplots(2, 1, figsize=(11, 7), sharex=True)
-for ax, cols in zip(axes, [["venues aux urgences"], ["séjours entrés par les urgences", "séjours programmés"]]):
-    for c in cols:
-        trait, = ax.plot(entrees.index, entrees[c].rolling(7, center=True).mean(), lw=2, label=c)
-        ax.plot(entrees.index, entrees[c], lw=0.6, alpha=0.4, color=trait.get_color())
-    ax.legend(loc="upper right"); ax.set_ylabel("par jour")
-axes[0].set_title("Entrées par jour sur l'année simulée")
-plt.tight_layout(); plt.show()
-
-semaine = entrees.groupby(entrees.index.dayofweek).mean().round(1)
-semaine.index = JOURS
-print("moyenne par jour de semaine :"); display(semaine.T)
+# la même fonction que le notebook de préparation applique aux données réelles : mêmes définitions, même tracé
+entrees = entrees_par_jour(rpu["entree"], rsa["d8eeue"], rsa["prov"] == "5", debut=DEBUT, fin=FIN)
+semaine = tracer_entrees_par_jour(entrees, "Entrées par jour sur l'année simulée")
 """)
 
 md("""
