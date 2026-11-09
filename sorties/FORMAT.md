@@ -10,10 +10,12 @@ simulateur », qui n'existent pas dans le réel et servent à comprendre et à c
 
 Conventions communes :
 
+- **une colonne `type`** dans chaque table, valant `SIM` (dans les tables réelles du
+  DIM : `REEL`), pour pouvoir empiler fictif et réel sans ambiguïté ;
 - **identifiants fictifs mais persistants** : `nohop` et `finess` sont ceux de
   `structure.yaml` (fictifs) ; `nas`, `no_visite` sont des numéros séquentiels ;
-  `sim_id_patient` identifie la personne, qui garde le même numéro quand elle
-  revient (la `probabilite_retour` de la structure), pour les analyses de réadmission ;
+  `ipp` identifie la personne, qui garde le même numéro quand elle revient (la
+  `probabilite_retour` de la structure), pour les analyses de réadmission ;
 - **dates et heures** : toutes les colonnes de date portent la date **et l'heure**
   (`2026-03-14 17:42`) ; les vraies tables PMSI ont souvent le jour seul pour
   `d8eeue`/`d8soue` — il suffit de tronquer, l'inverse n'est pas possible ;
@@ -31,6 +33,7 @@ Conventions communes :
 
 | colonne | contenu |
 | --- | --- |
+| `type` | `SIM` |
 | `finess` | finess fictif du site (structure) |
 | `nohop` | code du site (structure) |
 | `no_visite` | numéro de la venue |
@@ -50,17 +53,18 @@ Conventions communes :
 
 | colonne | contenu |
 | --- | --- |
-| `nohop`, `nas` | site, numéro de séjour |
+| `type` | `SIM` |
+| `nohop`, `nas`, `ipp` | site, numéro de séjour, personne |
 | `no_visite` | la venue aux urgences d'origine, vide pour un séjour programmé |
 | `agean`, `sexe` | âge en années, sexe `1`/`2` |
 | `ghm`, `gpcompx` | GHM (racine + niveau), niveau de sévérité |
 | `d8eeue`, `d8soue` | entrée et sortie du séjour (date-heure) ; l'entrée d'un séjour venu des urgences est la fin du passage aux urgences |
 | `duree` | nuitées (différence de dates calendaires) |
-| `mdentre` | `8` domicile |
-| `cdpu` | `5` si venu des urgences, vide sinon |
+| `echpmsi` | mode d'entrée du séjour : `8` domicile |
+| `prov` | provenance : `5` si venu des urgences, vide sinon |
+| `cdpu` | *à préciser* : son contenu par rapport à `prov` reste à confirmer (question ouverte) |
 | `schpmsi`, `dest` | mode de sortie et destination : domicile `8`/vide, EHPAD `8`/`7`, SSR `7`/`2`, transfert `7`/`1`, décès `9`/vide |
 | `nb_rum` | nombre de RUM, UHCD comprise |
-| `sim_id_patient` | la personne |
 | `sim_origine` | `urgences` ou `programme` |
 | `sim_mono_uhcd` | `oui` pour un séjour limité à l'UHCD |
 | `sim_soins_critiques` | `rea`, `usi`, `usc` prévus par le tirage, séparés par des virgules |
@@ -69,14 +73,15 @@ Conventions communes :
 
 | colonne | contenu |
 | --- | --- |
+| `type` | `SIM` |
 | `nohop`, `nas`, `norum` | site, séjour, numéro d'ordre du RUM |
 | `noseqrum` | numéro du RUM principal du séjour (le plus long hors UHCD), répété sur chaque ligne |
 | `spe_uma`, `lib_spe_uma` | code et libellé de la spécialité (= le service) |
 | `typaut` | type d'autorisation de l'unité (`07A` pour l'UHCD, codes de la structure pour les soins critiques) |
 | `cdurm` | code d'unité fictif (= le service) |
 | `d8eeue`, `d8soue` | entrée et sortie du RUM (date-heure) |
-| `mdentre`, `cdpu` | premier RUM : `8` et `5` si urgences ; RUM suivants : `6` (mutation) et `1` |
-| `schpmsi`, `dest` | dernier RUM : ceux du séjour ; RUM intermédiaires : `6`/`1` (mutation) |
+| `mdeeue` | mode d'entrée du RUM : premier RUM `8` (domicile) ; RUM suivants `6` (mutation) |
+| `mdsoue` | mode de sortie du RUM : dernier RUM = `schpmsi` du séjour ; RUM intermédiaires `6` (mutation) |
 | `agean`, `ghm` | repris du séjour |
 | `sim_service_prevu`, `sim_rang` | service demandé et rang du service obtenu |
 | `sim_heberge` | `oui` si le service est différent de la spécialité prévue (hébergement) |
@@ -89,17 +94,25 @@ dans un même service s'il y en a. Il y a donc au moins autant de mouvements que
 
 | colonne | contenu |
 | --- | --- |
-| `nohop`, `nas` | site, séjour |
+| `type` | `SIM` |
+| `nohop`, `nas`, `ipp` | site, séjour, personne |
 | `nomvt`, `nbmvt` | numéro du mouvement, nombre de mouvements du séjour |
 | `uma_ej`, `spe_uma` | unité (fictive, = le service) et spécialité |
 | `d8eeue`, `d8soue` | entrée et sortie du mouvement (date-heure) |
 | `prov` | `5` sur le premier mouvement d'un séjour venu des urgences, vide sinon |
-| `sim_lit` | numéro de lit fictif dans le service |
-| `sim_type` | `entree`, `mutation`, `changement_lit` |
+| `lit` | numéro de lit fictif dans le service |
+| `ids_type_mouvement` | type du mouvement, avec les codes du DIM (*à préciser* : entrée, mutation, changement de lit, sortie) |
 
 ## Ce que les sorties ne contiennent pas
 
 Pas de diagnostics ni d'actes (le GHM est tiré directement), pas d'identité, pas
 d'adresse, pas de dates de naissance (seulement l'âge), pas d'unités plus fines que la
 spécialité. Les colonnes `sim_` sont la seule trace de ce que le simulateur « savait »
-et que le réel ne dit jamais : le service prévu, le rang, l'attente.
+et que le réel ne dit jamais : le service prévu (exprimé, comme le service obtenu, avec
+les codes `spe_uma`), le rang, l'attente.
+
+## Questions ouvertes
+
+- `cdpu` (niveau séjour) : son contenu par rapport à `prov`.
+- `ids_type_mouvement` : les codes du DIM à reprendre pour les types de mouvement, et
+  l'usage éventuel de `ids_mode_admission`.
