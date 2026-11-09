@@ -8,7 +8,7 @@ renvoient au mécanisme décrit dans sa section 2.3.
 
 Le même module de code (`gen_admissions/extraction.py`) produit ces fichiers,
 que les données d'entrée soient la réalité fictive du script
-`scripts/fabriquer_parametres.py` ou des données réelles. Le dictionnaire et
+`scripts/fabriquer_parametres_fictifs.py` ou des données réelles. Le dictionnaire et
 le code doivent donc toujours dire la même chose.
 
 ---
@@ -237,11 +237,11 @@ autorisations_soins_critiques:         # lu par l'extraction, pas par la simulat
   usc: ["03A", "03B"]
 ```
 
-Ce que ce fichier ne contient plus par rapport à la version 1 : la liste des
-services d'hébergement compatibles, le délai avant hébergement, le retour dans
-le service d'origine, la priorité selon la gravité CCMU, le taux d'occupation
-global. L'hébergement hors de la spécialité est lu dans les tables de
-premier service et de passage (colonne `rang`).
+Ce que ce fichier ne contient pas : la liste des services d'hébergement
+compatibles, un délai avant hébergement, le retour dans le service d'origine, une
+priorité selon la gravité CCMU, un taux d'occupation global. L'hébergement hors de
+la spécialité est lu dans les tables de premier service et de passage (colonne
+`rang`).
 
 **Soins critiques.** La clé `soins_critiques` d'un service est la liste des
 types qu'il couvre, parmi `rea` (réanimation), `usi` (soins intensifs) et
@@ -749,7 +749,7 @@ que la durée moyenne soit conservée.
 
 ## 6. Fichier de contrôle (pas un paramètre)
 
-### `controle/cibles.csv` — les fourchettes attendues
+### `cibles.csv` — les fourchettes attendues
 
 | Colonne | Contenu |
 | --- | --- |

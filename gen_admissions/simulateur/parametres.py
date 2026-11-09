@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from gen_admissions.preparation_parametres import attribuer_rang, restreindre_services, verifier_dossier
+from gen_admissions.extraction import attribuer_rang, restreindre_services, verifier_dossier
 
 TYPES_CONVENTIONNELS = ("medecine", "chirurgie", "obstetrique", "pediatrie")
 JOURS_SEMAINE = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")

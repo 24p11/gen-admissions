@@ -1,7 +1,9 @@
-"""Ligne de commande du simulateur v2.
+"""Ligne de commande du simulateur.
 
-    python -m gen_admissions.simulateur [dossier_parametres] [--sortie DOSSIER] [--graine N]
-                                        [--duree J] [--chauffe J] [--marge J] [--facteur-lits F] [--sans-csv]
+    python -m gen_admissions [dossier_parametres] [--sortie DOSSIER] [--graine N]
+                             [--duree J] [--chauffe J] [--marge J] [--facteur-lits F] [--sans-csv]
+
+(``python -m gen_admissions.simulateur`` et la commande ``gen-admissions`` sont équivalents.)
 
 Sans dossier de paramètres, celui de ``config_locale.yaml`` (sinon l'hôpital fictif).
 Écrit les tables de sortie, ``tension.parquet``, ``resume.yaml`` et ``controle.csv``,
@@ -16,7 +18,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from gen_admissions.preparation_parametres import config_locale
+from gen_admissions.extraction import config_locale
 
 from .controle import bilan, tableau_controle
 from .export import ecrire
@@ -25,7 +27,7 @@ from .parametres import Parametres
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Simulateur de flux hospitaliers (v2)")
+    ap = argparse.ArgumentParser(prog="python -m gen_admissions", description="Simulateur de flux hospitaliers")
     ap.add_argument("dossier_parametres", nargs="?", help="les 22 fichiers de paramètres (défaut : config_locale.yaml, sinon l'hôpital fictif)")
     ap.add_argument("--sortie", help="dossier des sorties (défaut : sorties/<etablissement>_<graine>)")
     ap.add_argument("--graine", type=int)

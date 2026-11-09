@@ -1,165 +1,156 @@
 # gen-admissions
 
 Générateur de **données administratives hospitalières fictives** : passages aux
-urgences, séjours, passages dans les unités (RUM) et mouvements entre services.
+urgences (RPU), séjours (RSA), passages dans les unités (RUM) et mouvements entre
+services, au format des tables que manipule un département d'information médicale.
 
 Les données sont produites par une **simulation à événements discrets**
-(bibliothèque [SimPy](https://simpy.readthedocs.io/)) : un hôpital virtuel
-« vit » pendant un an, des patients arrivent, occupent des lits, changent de
-service et sortent. Comme un service de 30 lits ne peut jamais accueillir un
-31e patient, les données obtenues sont crédibles : attentes aux urgences,
-hébergements dans un autre service, taux d'occupation réalistes.
+(bibliothèque [SimPy](https://simpy.readthedocs.io/)) : un hôpital virtuel « vit »
+pendant un an, des patients arrivent aux urgences ou en entrée programmée, occupent
+des lits, changent de service et sortent. Comme un service de 30 lits ne peut jamais
+accueillir un 31e patient, les données obtenues portent les traces d'un vrai hôpital :
+attentes aux urgences, hébergements dans un service voisin, tension qui monte en hiver.
 
-> **Aucun patient réel.** Les paramètres de l'hôpital type livré ici ont été
-> fabriqués de toutes pièces (`scripts/fabriquer_parametres.py`). Le jour où
-> l'on disposera des agrégats d'un vrai établissement, il suffira de remplacer
-> les fichiers du dossier `parametres/`, sans toucher au code.
-
-> **État du dépôt (novembre 2026).** Le format des paramètres a été refondu
-> (version 2 : 22 fichiers décrits dans `parametres/DICTIONNAIRE.md`, fonctions
-> d'extraction dans `gen_admissions/preparation_parametres.py` et
-> `parametres/FONCTIONS.md`). Le dossier `parametres/hopital_type/` est au
-> format 2, fabriqué par `scripts/fabriquer_parametres_fictifs.py`. Le
-> simulateur décrit ci-dessous est la version 1 : il ne lit pas encore ce
-> format, sa version 2 est en cours ; le reste de ce README sera repris avec elle.
+> **Aucun patient réel.** Le dépôt ne contient que l'hôpital fictif
+> `parametres/hopital_type/`, fabriqué de toutes pièces par
+> `scripts/fabriquer_parametres_fictifs.py`. Les paramètres décrivant un vrai
+> établissement — même s'il ne s'agit que de proportions — restent hors du dépôt
+> (dossier `prod/`, ignoré par git).
 
 ## Démarrage rapide
 
 ```bash
 pip install -e ".[dev]"
 
-# Simuler un an d'activité de l'hôpital type (une dizaine de secondes)
-python -m gen_admissions simuler parametres/hopital_type sorties/essai --graine 42
+# Simuler un an d'activité de l'hôpital fictif (une vingtaine de secondes)
+python -m gen_admissions parametres/hopital_type --sortie sorties/essai --duree 365 --graine 42
 
 # Lancer les tests
 pytest
 ```
 
-Le dossier de sortie contient les tables (CSV et Parquet), un fichier
-`description.json`, et le **tableau de contrôle** (`controle.md`) qui compare
-les indicateurs du jeu de données aux cibles. Un jeu de données exemple d'un an
-est versionné dans `sorties/exemple/`.
+La commande affiche le résumé des paramètres, celui de la simulation, puis le
+**tableau de contrôle** : pour chaque indicateur (présents moyens, durée moyenne,
+part des entrées par les urgences, par service…), la valeur observée dans les
+paramètres, la valeur recalculée sur les tables simulées et la fourchette admise.
+Le dossier de sortie contient les quatre tables en parquet et en CSV, la série
+quotidienne de la tension, `resume.yaml` (graine, période, capacités, volumes) et
+`controle.csv`.
+
+Un exemple d'un an est versionné dans `sorties/exemple/` (parquet, contrôle et
+résumé ; relancer la commande ci-dessus pour obtenir les CSV).
+
+Options : `--chauffe` et `--marge` (jours de chauffe et de fin, retirés des
+sorties), `--facteur-lits` (bornes de tension ajustées à un hôpital agrandi),
+`--sans-csv`. Sans dossier de paramètres, la commande lit celui indiqué dans
+`config_locale.yaml` (voir plus bas), sinon l'hôpital fictif.
 
 ## Ce que le simulateur produit
 
+Le format est décrit colonne par colonne dans [`sorties/FORMAT.md`](sorties/FORMAT.md).
+Les noms de colonnes et les codes sont ceux des tables réelles (`nas`, `d8eeue`,
+`echpmsi`, `cdpu`…), de sorte qu'un traitement écrit pour les vraies tables tourne
+sur les tables fictives sans modification ; une colonne `type` vaut `SIM` partout.
+
 | Table | Une ligne par | Contenu principal |
 | --- | --- | --- |
-| `rpu` | passage aux urgences | dates et heures d'entrée et de sortie, âge, sexe, gravité CCMU, mode de sortie, service de destination |
-| `rss` | séjour | dates d'entrée et de sortie, mode d'entrée, provenance (5 = urgences), mode de sortie et destination (codes PMSI), nombre de RUM |
-| `rum` | passage dans une unité | rang, unité, dates (au jour), modes d'entrée et de sortie PMSI (6 mutation, 7 transfert, 8 domicile, 9 décès), indicateur d'hébergement, spécialité prévue, lit |
-| `mouvements` | changement de lit ou d'unité | date et heure, unité et lit de départ et d'arrivée, type (entrée, mutation, sortie) |
-| `verite_sejours` | séjour | ce qui a réellement été simulé : trajectoire prévue (catalogue ou table de passage), trajectoire réalisée, hébergements, retours, attentes |
-| `verite_passages` | passage | attente d'un lit, transfert faute de lit |
-| `patients` | patient | âge, sexe, nombre de venues |
+| `rpu` | venue aux urgences | arrivée et sortie (date-heure), âge, sexe, gravité CCMU, mode de sortie, séjour qui suit |
+| `rsa` | séjour | entrée et sortie, GHM et niveau de sévérité, mode d'entrée et provenance (5 = urgences), mode de sortie et destination, nombre de RUM |
+| `rum` | passage dans une spécialité | numéro d'ordre, spécialité (`spe_uma`), dates, modes d'entrée et de sortie PMSI (8 domicile, 6 mutation, 7 transfert, 9 décès), RUM principal |
+| `mouvements` | lit occupé | spécialité, lit, dates, type (entrée, mutation, changement de lit) |
 
-Exemple d'un séjour avec hébergement (table `rum`) : le patient relève de la
-cardiologie, mais le service est plein ; il est hébergé en pneumologie, puis
-rejoint la cardiologie dès qu'un lit se libère.
-
-| rang | unite | date_entree | date_sortie | mode_entree | mode_sortie | heberge | specialite_prevue |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | PNEUMO | 2026-02-12 | 2026-02-12 | 8 | 6 | oui | CARDIO |
-| 2 | CARDIO | 2026-02-12 | 2026-02-23 | 6 | 6 | non | CARDIO |
-| 3 | REA | 2026-02-23 | 2026-03-01 | 6 | 6 | non | REA |
-| 4 | CARDIO | 2026-03-01 | 2026-03-02 | 6 | 8 | non | CARDIO |
+À ces colonnes s'ajoutent des colonnes **`sim_`**, la « vérité du simulateur » que
+le réel ne dit jamais : situation de la venue, service prévu et rang du service
+obtenu, attente d'un lit, supplément d'attente appliqué. On peut les ignorer.
 
 ## Comment ça marche
 
-Le fonctionnement est décrit en détail dans le plan d'analyse du projet. En
-résumé :
-
-1. **Les arrivées aux urgences** suivent un rythme qui varie selon l'heure, le
-   jour de la semaine et le mois (méthode d'« amincissement »). Chaque patient
-   reçoit un âge, un sexe et une gravité ; l'issue du passage (domicile,
-   hospitalisation, transfert, décès, parti sans attendre) en dépend.
-2. **Les entrées programmées** sont tirées chaque jour, service par service,
-   avec un profil hebdomadaire et horaire.
-3. **Le parcours** d'un patient hospitalisé vient soit du **catalogue de
-   trajectoires** (parcours complets, fréquents), soit de la **table de
-   passage** (étape par étape, avec repli sur des tables plus générales quand
-   une case contient trop peu de séjours).
-4. **La durée** de chaque passage est tirée dans une loi log-normale propre au
-   service, au mode d'entrée et à la tranche d'âge, puis ajustée à une heure
-   de sortie plausible (surtout en fin de matinée, moins le week-end).
-5. **Le gestionnaire de lits** applique les règles : lit libre → entrée ;
-   sinon attente avec priorité ; au-delà d'un délai, hébergement dans un
-   service compatible (avec retour dans le service prévu dès qu'un lit s'y
-   libère) ; au-delà d'un délai plus long, transfert vers un autre établissement.
-6. **Le journal** des événements est transformé en tables, et le **contrôle**
-   compare les indicateurs aux cibles.
+1. **Les venues aux urgences** arrivent selon un profil heure × jour de semaine,
+   modulé par le mois. Chaque venue reçoit un âge, un sexe, puis une *situation*
+   (consultation, hospitalisation, UHCD seule, transfert, décès) tirée en fonction
+   de la saison et de la **classe de tension** du jour — la tension est le taux
+   d'occupation des lits conventionnels, relevé chaque matin.
+2. **Les entrées programmées** sont tirées service par service ; leur rythme est
+   régulé chaque jour pour tenir le nombre de présents visé (loi de Little en
+   boucle fermée), en tenant compte des entrées reportées faute de lit.
+3. **Le séjour** est construit à partir du GHM : racine tirée selon la situation et
+   l'âge, niveau de sévérité, durée totale, passage ou non en soins critiques, mode
+   de sortie. La racine désigne le **premier service** ; la **table de passage**
+   enchaîne ensuite les étapes, avec repli sur des tables plus générales quand une
+   case contient trop peu de séjours.
+4. **Le parc de lits** applique la règle d'admission : lit dans le service prévu ;
+   sinon dans un service de **rang 1** (où la spécialité est habituellement prise en
+   charge) ; sinon, après un supplément d'attente, dans un service de **rang 2**
+   (exceptionnel) ; sinon transfert ou report. Les soins critiques ne se redirigent pas.
+5. **Le journal** des événements devient les quatre tables, et le **contrôle**
+   recalcule les indicateurs sur ces tables, avec les mêmes fonctions que
+   l'extraction sur les données réelles, pour les comparer aux cibles.
 
 ### Organisation du code
 
+Le paquet a deux moitiés : l'extraction prépare les paramètres, le simulateur les
+fait vivre.
+
 | Fichier | Rôle |
 | --- | --- |
-| `gen_admissions/config.py` | lecture et vérification des fichiers de paramètres |
-| `gen_admissions/hasard.py` | flux de hasard séparés (une graine, plusieurs générateurs indépendants) |
-| `gen_admissions/distributions.py` | loi log-normale à partir de la médiane et des quartiles, profils horaires |
-| `gen_admissions/parcours.py` | catalogue de trajectoires, table de passage avec repli, durées |
-| `gen_admissions/lits.py` | gestionnaire de lits : attente, hébergement, retour, transfert |
-| `gen_admissions/moteur.py` | les processus SimPy : générateurs de flux, passage aux urgences, séjour |
-| `gen_admissions/modele.py` | les objets du journal : patient, passage, séjour, RUM, mouvement |
-| `gen_admissions/export.py` | construction des tables RPU, RSS, RUM, mouvements, vérité |
-| `gen_admissions/controle.py` | indicateurs, comparaison aux cibles, graphique d'occupation |
-| `gen_admissions/extraction.py` | calcul des paramètres agrégés à partir de données de type RUM (réutilisable sur des données réelles) |
-| `scripts/fabriquer_parametres.py` | fabrique les paramètres de l'hôpital type fictif |
-| `notebooks/prise_en_main.ipynb` | visite guidée : lancer une simulation, regarder les tables, retrouver les mécanismes |
+| `gen_admissions/extraction.py` | fonctions qui transforment des effectifs agrégés en fichiers de paramètres : normalisation par bloc avec seuils et repli, rangs, restriction à un site, tables de durées, profils ; vérification d'un dossier (`verifier_dossier`) ; cache parquet des requêtes (`memoriser`) ; `config_locale` |
+| `gen_admissions/simulateur/parametres.py` | lecture et vérification des 22 fichiers, structure de l'hôpital, tables de tirage avec repli |
+| `gen_admissions/simulateur/tirages.py` | les tirages : venue aux urgences, premier service, séjour (GHM, durée, soins critiques, sortie), suite du parcours |
+| `gen_admissions/simulateur/lits.py` | le parc de lits et la règle d'admission (rang 1, rang 2, dernier recours, transfert) |
+| `gen_admissions/simulateur/moteur.py` | les processus SimPy : flux des urgences, flux programmé régulé, passage aux urgences, séjour, relevé de tension |
+| `gen_admissions/simulateur/export.py` | les tables au format `FORMAT.md`, `resume.yaml` |
+| `gen_admissions/simulateur/controle.py` | indicateurs recalculés sur les sorties, tableau de contrôle, bilan |
+| `gen_admissions/simulateur/__main__.py` | la ligne de commande (`python -m gen_admissions`) |
+| `scripts/fabriquer_parametres_fictifs.py` | invente un monde fictif à deux sites et applique les fonctions d'extraction pour produire `parametres/hopital_type/` |
+| `scripts/fabriquer_notebook_preparation.py` | engendre `notebooks/preparation_parametres.ipynb`, le modèle de notebook d'extraction sur données réelles |
+| `scripts/fabriquer_notebook_cartographie.py` | engendre `notebooks/cartographie_hopital.ipynb`, qui décrit un hôpital à partir de ses paramètres |
 
 ## Les fichiers de paramètres
 
-Tout est dans `parametres/hopital_type/`. La structure et les règles sont dans
-un fichier YAML ; les grandes tables sont des CSV, modifiables dans un tableur.
+Un dossier de paramètres compte **22 fichiers** : `structure.yaml` (services, lits,
+lits ouverts, soins critiques, règles d'attente), 20 tables CSV de proportions
+(GHM, premier service, table de passage, durées, profils horaires, tension…) et
+`cibles.csv` (fourchettes du contrôle). Chaque fichier est décrit dans
+[`parametres/DICTIONNAIRE.md`](parametres/DICTIONNAIRE.md) ; les fonctions qui les
+produisent, dans [`parametres/FONCTIONS.md`](parametres/FONCTIONS.md).
 
-| Fichier | Contenu |
-| --- | --- |
-| `structure.yaml` | services et nombre de lits, services d'hébergement compatibles, contraintes d'âge et de sexe, règles d'attente, réglages de simulation |
-| `profil_arrivees_urgences.csv` | poids des arrivées par heure, jour de la semaine et mois |
-| `profil_patients_urgences.csv`, `gravite_urgences.csv` | répartition des patients par âge, sexe et gravité |
-| `issues_urgences.csv`, `durees_passage_urgences.csv` | issue du passage selon l'âge et la gravité ; durée du passage selon l'issue |
-| `entrees_programmees.csv`, `profil_entrees_programmees.csv`, `profil_patients_programme.csv` | admissions programmées par service, profils hebdomadaire et horaire, profil des patients |
-| `premier_service.csv` | premier service d'hospitalisation selon le mode d'entrée, l'âge et le sexe |
-| `catalogue_trajectoires.csv` | trajectoires fréquentes avec leur effectif |
-| `table_passage.csv` | suite du parcours à la fin d'un passage, à quatre niveaux de détail |
-| `durees_sejour.csv` | médiane, quartiles et part des passages de moins d'un jour, par service, mode d'entrée et âge |
-| `profil_sorties.csv` | heures de sortie |
-| `cibles.csv` | fourchettes attendues pour les indicateurs de contrôle |
+Trois conventions à connaître :
 
-Un point important, découvert en construisant le prototype : **la table de
-passage est calculée sur les séjours que le catalogue ne couvre pas** (voir
-`extraction.hors_catalogue`). Si elle était calculée sur tous les séjours,
-les parcours rares (passages en réanimation, par exemple) seraient
-sous-représentés, car le catalogue ne retient que les trajectoires fréquentes.
+- les tables donnent des **proportions par bloc** (par exemple « sachant la racine
+  de GHM et la classe d'âge ») ; un bloc trop petit (moins de 25 séjours) n'est pas
+  écrit et le simulateur se **replie** sur un niveau plus général ;
+- un service est de **rang 1** pour une spécialité s'il en reçoit au moins 10 % des
+  séjours, de **rang 2** sinon ; cette distinction porte la règle d'admission ;
+- les tables à plusieurs sites sont **restreintes** au chargement aux services de
+  l'hôpital simulé, et les rangs sont recalculés.
 
-### Refabriquer les paramètres fictifs
+### Refabriquer l'hôpital fictif
 
 ```bash
-python scripts/fabriquer_parametres.py parametres/hopital_type
+python scripts/fabriquer_parametres_fictifs.py parametres/hopital_type
 ```
 
-Le script décrit une « réalité » fictive (règles médicales simples, volumes,
-durées), en tire trois ans de séjours sans contrainte de lits, ajuste les
-entrées programmées pour approcher des taux d'occupation visés, puis applique
-le module `extraction` pour produire les fichiers. Ce même module servira
-pour les données réelles : il n'a besoin que d'un tableau de passages d'unités
-(colonnes décrites en tête de `gen_admissions/extraction.py`).
+### Préparer les paramètres d'un vrai établissement
+
+Le notebook `notebooks/preparation_parametres.ipynb` est le modèle : chaque cellule
+interroge l'entrepôt, agrège, puis appelle une fonction d'`extraction.py` qui écrit
+un fichier. Les chemins propres à la machine (dossier des paramètres, cache des
+requêtes, site) se mettent dans `config_locale.yaml` à la racine du dépôt, à copier
+depuis `config_locale.exemple.yaml` ; ce fichier, le dossier `prod/` et les
+notebooks qui touchent aux données réelles ne sont pas suivis par git.
 
 ## Reproductibilité
 
-Une graine unique (`--graine`) fixe tous les tirages ; elle est enregistrée
-dans `description.json`. À partir de cette graine, le simulateur crée
-plusieurs flux de hasard indépendants (arrivées, durées, parcours…) : modifier
-une partie du modèle ne perturbe pas les autres.
+Une graine unique (`--graine`) fixe tous les tirages ; elle est enregistrée dans
+`resume.yaml` avec la période, les capacités et le dossier de paramètres. Deux
+simulations de même graine sur les mêmes paramètres donnent les mêmes tables.
 
-## Limites de cette première version
+## Limites connues
 
-- Pas de données médicales (ni diagnostic, ni GHM). Les parcours sont rendus
-  cohérents par l'âge, le sexe, le mode d'entrée et le service précédent.
-- Les retours de patients déjà connus sont simplifiés : le taux de
-  réhospitalisation à 30 jours est faible. Une population plus réaliste est
-  prévue pour l'étape suivante.
-- Pas encore de mode « données sales », de fermetures de lits saisonnières ni
-  d'ajustement automatique des paramètres.
-- Dans la table de passage, le patient ne « se souvient » que du service
-  précédent : sur les parcours longs non couverts par le catalogue, il peut
-  arriver qu'un patient soit envoyé dans un service inattendu. C'est une
-  limite connue, utile pour tester la robustesse du code d'analyse.
+- Pas de diagnostics ni d'actes : le GHM est tiré directement. Pas d'identité, pas
+  de date de naissance (seulement l'âge), pas d'unités plus fines que la spécialité.
+- Les lits ouverts sont constants sur l'année ; les fermetures saisonnières sont
+  prévues (profil de fermeture par service), pas encore écrites.
+- La suite du parcours ne « se souvient » que du service précédent ; sur les
+  parcours longs, un patient peut être envoyé dans un service inattendu.
+- Les retours de patients déjà connus sont simplifiés (probabilité de retour fixe).

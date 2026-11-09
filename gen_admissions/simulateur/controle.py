@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from gen_admissions.preparation_parametres import passages_specialite
+from gen_admissions.extraction import passages_specialite
 
 from .parametres import Parametres
 

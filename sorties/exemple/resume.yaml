@@ -1,0 +1,40 @@
+etablissement: HOPITAL_FICTIF_480
+dossier_parametres: parametres/hopital_type
+graine: 42
+periode:
+  debut: '2026-01-01'
+  fin: '2027-01-01'
+  duree_jours: 365
+  chauffe_jours: 42
+  marge_fin_jours: 60
+saison: 2024-2025
+capacites:
+  URG: 10
+  REA: 23
+  USIC: 12
+  UNV: 8
+  CARDIO: 42
+  PNEUMO: 35
+  MED_INT: 45
+  GERIA: 47
+  NEURO: 38
+  GASTRO: 20
+  ONCO: 37
+  MED_POLY: 41
+  ORTHO: 41
+  CHIR_DIG: 36
+  URO: 28
+  GYN_OBS: 37
+  PED: 16
+volumes:
+  rpu: 46748
+  rsa: 24040
+  rum: 32918
+  mouvements: 32918
+  tension: 365
+compteurs:
+  transferts_faute_de_service: 0
+  transferts_faute_de_lit: 5
+  brancards: 0
+  mutations_abandonnees: 0
+  reports: 1760

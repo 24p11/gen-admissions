@@ -3,7 +3,7 @@
 Principe : on invente d'abord une « réalité » fictive — des venues aux urgences,
 des séjours avec leurs RUM, des mouvements, sur trois années et deux sites —
 puis on lui applique exactement les fonctions d'extraction du module
-``gen_admissions.preparation_parametres``, comme le fait le notebook sur les
+``gen_admissions.extraction``, comme le fait le notebook sur les
 données réelles. Les fichiers produits sont donc conformes au dictionnaire par
 construction, et le script sert de banc d'essai permanent au simulateur comme à
 l'extraction.
@@ -27,7 +27,7 @@ import pandas as pd
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from gen_admissions.preparation_parametres import (  # noqa: E402
+from gen_admissions.extraction import (  # noqa: E402
     REGLAGES, additionner, cible, classe_age, classer_tension, classes_tension_depuis_tension, configurer,
     durees_passage_depuis_passages, durees_urgences_depuis_effectifs, effectifs_arrivees, effectifs_durees_urgences,
     effectifs_gravite, effectifs_passage, effectifs_patients_urgences, effectifs_profil_semaine,

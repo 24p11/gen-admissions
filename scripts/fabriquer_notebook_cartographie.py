@@ -45,7 +45,7 @@ import matplotlib as mpl
 # le dépôt : on remonte jusqu'au dossier qui contient gen_admissions/, pour trouver le module
 RACINE = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "gen_admissions").exists())
 import sys; sys.path.insert(0, str(RACINE))
-from gen_admissions.preparation_parametres import restreindre_services, config_locale
+from gen_admissions.extraction import restreindre_services, config_locale
 
 plt.rcParams.update({"figure.figsize": (10, 4.5), "axes.grid": True, "grid.alpha": 0.3, "axes.spines.top": False, "axes.spines.right": False})
 CLASSES_AGE = ["0-17", "18-64", "65-74", "75+"]

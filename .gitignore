@@ -6,11 +6,12 @@ __pycache__/
 build/
 dist/
 .venv/
-# sorties de simulation (sauf l'exemple versionné)
+# sorties de simulation (sauf l'exemple versionné : parquet, controle.csv, resume.yaml)
 sorties/*
 !sorties/exemple/
 !sorties/FORMAT.md
-sorties/exemple/*.parquet
+sorties/exemple/*.csv
+!sorties/exemple/controle.csv
 prod/
 
 # réglages propres à la machine

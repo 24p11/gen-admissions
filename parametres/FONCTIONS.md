@@ -1,6 +1,6 @@
-# Les fonctions de `preparation_parametres.py`
+# Les fonctions de `extraction.py`
 
-Référence des fonctions du module `gen_admissions/preparation_parametres.py`,
+Référence des fonctions du module `gen_admissions/extraction.py`,
 par groupe. Le schéma commun : requête par année → fonction « effectifs » →
 `additionner` → fonction « depuis_effectifs » (avec `seuil`, `part_min`,
 `contexte` explicites) → `verifier_table` → `to_csv`.
