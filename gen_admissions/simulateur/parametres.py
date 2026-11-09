@@ -30,6 +30,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import yaml
@@ -243,12 +245,47 @@ class TableTirage(TableRepli):
     """Une table de proportions prête au tirage : à chaque bloc de chaque niveau, une ``Ligne``."""
 
     def __init__(self, table: pd.DataFrame, colonnes_bloc: Sequence[str], colonnes_categorie: Sequence[str],
-                 annexes: Sequence[str] = ()):
+                 annexes: Sequence[str] = (), replis_synthetiques: bool = False, nom: str = ""):
         super().__init__(table, colonnes_bloc)
         self.colonnes_categorie = list(colonnes_categorie)
+        self.nom = nom
         self._lignes: dict[tuple[str, ...], dict[tuple, Ligne]] = {}
         for niveau, blocs in self._blocs.items():
             self._lignes[niveau] = {k: self._ligne(g, niveau, annexes) for k, g in blocs.items()}
+        self.niveaux_synthetiques: list[tuple[str, ...]] = []
+        self.replis_synthetiques_utilises = 0
+        if replis_synthetiques:
+            self._ajouter_replis_synthetiques()
+
+    def _ajouter_replis_synthetiques(self) -> None:
+        """Pour une table dont l'absence de bloc ne doit jamais arrêter la simulation (durées, gravité,
+        supplément…) : derrière le niveau le plus grossier du fichier, des niveaux de secours obtenus en
+        retirant ses colonnes une à une par la fin, jusqu'au niveau vide. La ligne d'un bloc de secours
+        est la moyenne (non pondérée, les effectifs n'étant pas transmis) des lignes des blocs du niveau
+        précédent qui partagent sa clé. Un bloc du fichier l'emporte toujours sur un bloc de secours."""
+        source = self.niveaux[-1]
+        while source:
+            cible = source[:-1]
+            if cible in self._lignes:
+                source = cible
+                continue
+            garde = [i for i, c in enumerate(source) if c in cible]
+            groupes: dict[tuple, dict[tuple, list[float]]] = {}
+            for k, ligne in self._lignes[source].items():
+                kc = tuple(k[i] for i in garde)
+                acc = groupes.setdefault(kc, {})
+                for cat, part in zip(ligne.categories, ligne.parts):
+                    acc.setdefault(cat, []).append(float(part))
+            lignes = {}
+            for kc, acc in groupes.items():
+                cats = list(acc)
+                parts = np.array([np.mean(acc[c]) for c in cats])
+                parts = parts / parts.sum()
+                lignes[kc] = Ligne(categories=cats, parts=parts, cumul=np.cumsum(parts), niveau=cible)
+            self._lignes[cible] = lignes
+            self.niveaux.append(cible)
+            self.niveaux_synthetiques.append(cible)
+            source = cible
 
     def _ligne(self, g: pd.DataFrame, niveau: tuple[str, ...], annexes: Sequence[str]) -> Ligne:
         g = g[g["part"] > 0]
@@ -264,6 +301,11 @@ class TableTirage(TableRepli):
             if all(c in cle for c in niveau):
                 ligne = self._lignes[niveau].get(tuple(cle[c] for c in niveau))
                 if ligne is not None:
+                    if niveau in self.niveaux_synthetiques:
+                        if self.replis_synthetiques_utilises == 0:
+                            warnings.warn(f"{self.nom or 'table'} : aucun bloc du fichier pour {cle} ; repli de secours "
+                                          f"{niveau or '(global)'} (moyenne des blocs) — ce message n'est affiché qu'une fois")
+                        self.replis_synthetiques_utilises += 1
                     return ligne
         return None
 
@@ -487,11 +529,11 @@ class Parametres:
 
         return cls(
             dossier=dossier, structure=structure, specialites=specialites, regroupements=lire("regroupements_ghm.csv"),
-            niveaux=TableTirage(niveaux_t, ["racine_ghm", "classe_age"], ["niveau"]),
-            durees_ghm=TableTirage(lire("durees_ghm.csv"), ["ghm", "classe_age_duree"], ["duree_j"], annexes=["moyenne_60plus"]),
+            niveaux=TableTirage(niveaux_t, ["racine_ghm", "classe_age"], ["niveau"], replis_synthetiques=True, nom="niveaux"),
+            durees_ghm=TableTirage(lire("durees_ghm.csv"), ["ghm", "classe_age_duree"], ["duree_j"], annexes=["moyenne_60plus"], replis_synthetiques=True, nom="durees_ghm"),
             soins_critiques=SoinsCritiques(lire("soins_critiques_ghm.csv")),
-            sexe_racine=TableTirage(lire("sexe_racine.csv"), ["racine_ghm"], ["sexe"]),
-            sorties=TableTirage(lire("sorties.csv"), ["racine_ghm", "niveau", "classe_age"], ["mode_sortie"]),
+            sexe_racine=TableTirage(lire("sexe_racine.csv"), ["racine_ghm"], ["sexe"], replis_synthetiques=True, nom="sexe_racine"),
+            sorties=TableTirage(lire("sorties.csv"), ["racine_ghm", "niveau", "classe_age"], ["mode_sortie"], replis_synthetiques=True, nom="sorties"),
             premier_service=TableTirage(ps, ["racine_ghm", "classe_age"], ["specialite"], annexes=["rang"]),
             casemix=TableTirage(casemix_t, ["specialite"], ["classe_age", "racine_ghm"]),
             table_passage=TableTirage(tp, ["niveau", "service", "precedent", "classe_age", "mode_entree"], ["suite"], annexes=["rang"]),
@@ -499,10 +541,10 @@ class Parametres:
             venues=TableTirage(venues_t, ["saison", "periode", "classe_age"], ["situation", "gravite", "racine_ghm"]),
             arrivees=arrivees,
             patients=TableTirage(lire("profil_patients_urgences.csv"), [], ["classe_age", "sexe"]),
-            gravite=TableTirage(lire("gravite_urgences.csv"), ["classe_age", "situation", "tranche_h"], ["gravite"]),
+            gravite=TableTirage(lire("gravite_urgences.csv"), ["classe_age", "situation", "tranche_h"], ["gravite"], replis_synthetiques=True, nom="gravite_urgences"),
             classes_tension=ClassesTension(lire("classes_tension.csv")),
-            durees_urgences=TableTirage(lire("durees_passage_urgences.csv"), ["situation", "gravite", "classe_age", "classe_tension"], ["tranche_h"]),
-            supplement=TableTirage(lire("supplement_rang2.csv"), ["classe_tension"], ["tranche_h"]),
+            durees_urgences=TableTirage(lire("durees_passage_urgences.csv"), ["situation", "gravite", "classe_age", "classe_tension"], ["tranche_h"], replis_synthetiques=True, nom="durees_passage_urgences"),
+            supplement=TableTirage(lire("supplement_rang2.csv"), ["classe_tension"], ["tranche_h"], replis_synthetiques=True, nom="supplement_rang2"),
             entrees_programmees=ProfilSemaine(lire("profil_entrees_programmees.csv")),
             profil_sorties=ProfilSemaine(lire("profil_sorties.csv")),
             cibles=lire("cibles.csv"),

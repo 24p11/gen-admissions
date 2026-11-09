@@ -794,10 +794,12 @@ def effectifs_durees_urgences(v: pd.DataFrame, tension_classee: pd.DataFrame,
 def durees_urgences_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = None,
                                      contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """durees_passage_urgences.csv : bloc situation × gravité × classe d'âge × classe de
-    tension ; replis sans la tension, puis sans la gravité. Pour les situations
-    avec séjour (gravité toujours vide), les deux replis coïncident : on dédoublonne."""
+    tension ; replis sans la tension, puis sans la gravité, puis la situation seule (une classe
+    d'âge rare pour une situation, par exemple les transferts d'enfants d'un site sans urgences
+    pédiatriques). Pour les situations avec séjour (gravité toujours vide), des replis coïncident :
+    on dédoublonne."""
     t = table_proportions(effectifs, ["situation", "gravite", "classe_age", "classe_tension"], ["tranche_h"],
-                          replis=[["situation", "gravite", "classe_age"], ["situation", "classe_age"]],
+                          replis=[["situation", "gravite", "classe_age"], ["situation", "classe_age"], ["situation"]],
                           seuil=seuil, contexte=contexte, seuil_lissage=1)     # pas de lissage : catégories ordonnées (durées)
     cles = [c for c in t.columns if c != "part"]
     return t.drop_duplicates(subset=cles).reset_index(drop=True)
@@ -1018,7 +1020,7 @@ ATTENDUS = {
     "venues_urgences": (["saison", "periode", "classe_age", "situation", "gravite", "racine_ghm", "part"], ["saison", "periode", "classe_age"], ["periode"]),
     "gravite_urgences": (["classe_age", "situation", "tranche_h", "gravite", "part"], ["classe_age", "situation", "tranche_h"], ["tranche_h"]),
     "durees_passage_urgences": (["situation", "gravite", "classe_age", "classe_tension", "tranche_h", "part"],
-                                ["situation", "gravite", "classe_age", "classe_tension"], ["classe_tension", "gravite"]),
+                                ["situation", "gravite", "classe_age", "classe_tension"], ["classe_tension", "gravite", "classe_age"]),
     "supplement_rang2": (["classe_tension", "tranche_h", "part"], ["classe_tension"], ["classe_tension"]),
     "profil_patients_urgences": (["classe_age", "sexe", "part"], [], []),
     "profil_arrivees_urgences": (["saison", "dimension", "jour_semaine", "heure", "mois", "part"], ["saison", "dimension"], []),

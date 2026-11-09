@@ -154,3 +154,19 @@ def test_racines_inconnues_retirees(tmp_path):
     ligne = q.venues.chercher(saison="2024-2025", periode="1", classe_age="75+")
     assert abs(float(ligne.parts.sum()) - 1) < 1e-9 and all(c[2] != "90Z00" for c in ligne.categories)
     assert "inconnues" in q.resume()
+
+
+def test_replis_de_secours(p):
+    """Les tables qui ne doivent jamais bloquer ont des niveaux de secours derrière ceux du fichier."""
+    import warnings
+    t = p.durees_urgences
+    assert t.niveaux_synthetiques[-1] == () and ("situation",) in t.niveaux
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        ligne = t.chercher(situation="transfert", gravite="3", classe_age="0-17", classe_tension="basse")
+        assert ligne is not None and abs(float(ligne.parts.sum()) - 1) < 1e-9
+        inconnue = t.chercher(situation="situation_inconnue", gravite="", classe_age="0-17", classe_tension="basse")
+        assert inconnue is not None and inconnue.niveau == ()
+        assert any("repli de secours" in str(x.message) for x in w)
+    # les tables de pratiques, elles, doivent dire « absent » (transfert, pas de service inventé)
+    assert p.premier_service.niveaux_synthetiques == [] and p.premier_service.chercher(racine_ghm="99Z99", classe_age="75+") is None

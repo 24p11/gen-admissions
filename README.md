@@ -129,7 +129,7 @@ Trois conventions à connaître :
 ### Refabriquer l'hôpital fictif
 
 ```bash
-python scripts/fabriquer_parametres_fictifs.py parametres/hopital_type
+python scripts/fabriquer_parametres_fictifs.py --dossier parametres/hopital_type
 ```
 
 ### Préparer les paramètres d'un vrai établissement

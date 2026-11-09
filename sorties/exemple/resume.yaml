@@ -27,14 +27,14 @@ capacites:
   GYN_OBS: 37
   PED: 16
 volumes:
-  rpu: 46748
-  rsa: 24040
-  rum: 32918
-  mouvements: 32918
+  rpu: 46558
+  rsa: 23995
+  rum: 32997
+  mouvements: 32997
   tension: 365
 compteurs:
   transferts_faute_de_service: 0
-  transferts_faute_de_lit: 5
+  transferts_faute_de_lit: 2
   brancards: 0
   mutations_abandonnees: 0
-  reports: 1760
+  reports: 1612
