@@ -103,7 +103,7 @@ dans un même service s'il y en a. Il y a donc au moins autant de mouvements que
 | `d8eeue`, `d8soue` | entrée et sortie du mouvement (date-heure) |
 | `prov` | `5` sur le premier mouvement d'un séjour venu des urgences, vide sinon |
 | `lit` | numéro de lit fictif dans le service |
-| `ids_type_mouvement` | type du mouvement, avec les codes du DIM (*à préciser* : entrée, mutation, changement de lit, sortie) |
+| `sim_type` | `entree`, `mutation`, `changement_lit` (les codes `ids_type_mouvement` du DIM ne sont pas repris) |
 
 ## Ce que les sorties ne contiennent pas
 
@@ -112,8 +112,3 @@ d'adresse, pas de dates de naissance (seulement l'âge), pas d'unités plus fine
 spécialité. Les colonnes `sim_` sont la seule trace de ce que le simulateur « savait »
 et que le réel ne dit jamais : le service prévu (exprimé, comme le service obtenu, avec
 les codes `spe_uma`), le rang, l'attente.
-
-## Question ouverte
-
-- `ids_type_mouvement` : les codes du DIM à reprendre pour les types de mouvement ; en
-  attendant, les valeurs sont `entree`, `mutation`, `changement_lit`.

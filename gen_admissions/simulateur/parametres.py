@@ -78,6 +78,7 @@ class Service:
     specialite: str
     type: str
     lits: int
+    lits_ouverts: int | None = None                    # la capacité réellement utilisée par le simulateur, si renseignée
     soins_critiques: frozenset[str] = frozenset()      # parmi rea, usi, usc
     presents_vises: float | None = None
     age_min: int | None = None
@@ -87,6 +88,11 @@ class Service:
     @property
     def conventionnel(self) -> bool:
         return self.type in TYPES_CONVENTIONNELS
+
+    @property
+    def capacite(self) -> int:
+        """Les lits que le simulateur peut remplir : ``lits_ouverts`` s'il est renseigné, sinon ``lits``."""
+        return int(self.lits_ouverts) if self.lits_ouverts else int(self.lits)
 
     def accepte(self, classe_age: str, sexe: str | None = None) -> bool:
         """Le service accepte-t-il un patient de cette classe d'âge (« 0-17 », « 75+ ») et de ce sexe ?"""
@@ -138,6 +144,7 @@ class Structure:
                 type_ = "urgences"
             services[code] = Service(
                 code=code, libelle=b.get("libelle", code), specialite=specialite, type=type_, lits=int(b.get("lits", 0)),
+                lits_ouverts=None if b.get("lits_ouverts") is None else int(round(float(b["lits_ouverts"]))),
                 soins_critiques=frozenset(sc),
                 presents_vises=None if b.get("presents_vises") is None else float(b["presents_vises"]),
                 age_min=None if b.get("age_min") is None else int(b["age_min"]),
