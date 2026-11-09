@@ -346,9 +346,11 @@ class Simulation:
         etapes: list[tuple[str, int | None, str]] = []
         for type_, present in patient.soins_critiques.items():
             if present:
+                if type_ in st.services.get(premier, st.service_urgences).soins_critiques:
+                    continue                      # le premier service couvre déjà ce type (USIC comme premier service)
                 services = [s.code for s in st.services_pour(type_) if s.code != premier]
                 if services:
-                    etapes.append((services[0], 1, "soins_critiques"))
+                    etapes.append((self._service_soins_critiques(services, patient.racine_ghm), 1, "soins_critiques"))
         if premier not in [e[0] for e in etapes]:
             etapes.append((premier, None, "premier"))
         precedent, service, mode = "AUCUN", premier, patient.origine
@@ -359,6 +361,23 @@ class Simulation:
             etapes.append((suite, rang, "mutation"))
             precedent, service = service, suite
         return etapes
+
+    def _service_soins_critiques(self, services: list[str], racine: str) -> str:
+        """Quand plusieurs services couvrent le même type de soins critiques (USIC et UNV pour les soins
+        intensifs), celui que la table des premiers services associe le plus à cette racine ; sinon le premier."""
+        if len(services) == 1:
+            return services[0]
+        # 1. un service qui déclare accueillir ce préfixe de racine (structure.yaml : racines)
+        for code in services:
+            if any(racine.startswith(pref) for pref in self.p.structure.services[code].racines):
+                return code
+        # 2. sinon, celui que la table des premiers services associe le plus à la racine
+        ligne = self.p.premier_service.chercher(racine_ghm=racine, classe_age="")
+        if ligne is not None:
+            parts = {c[0]: float(part) for c, part in zip(ligne.categories, ligne.parts) if c[0] in services}
+            if parts:
+                return max(parts, key=parts.get)
+        return services[0]
 
     def _repartir_duree(self, patient: Patient, etapes: list[tuple[str, int | None, str]]) -> list[float]:
         """La durée totale (heures) répartie entre les étapes : soins critiques à leur fraction, le reste au prorata
@@ -410,7 +429,8 @@ class Simulation:
             service_courant, occ = resultat.service, resultat.occupation
             t_debut_etape = env.now
         norum = len(mouvements_avant)
-        mdeeue, cdpu = "8", ("5" if origine == "urgences" else "")
+        # premier RUM d'hospitalisation : entrée directe (8, cdpu 5 si venu des urgences) ou mutation depuis l'UHCD (6, cdpu vide)
+        mdeeue, cdpu = ("6", "") if mouvements_avant else ("8", "5" if origine == "urgences" else "")
         for i, ((service, rang, regle), duree_h) in enumerate(zip(etapes, durees)):
             derniere = i == len(etapes) - 1
             fin_prevue = t_debut_etape + duree_h

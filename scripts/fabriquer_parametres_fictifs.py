@@ -550,6 +550,11 @@ def ecrire(dossier: Path, graine: int) -> None:
                               "presents_vises": presents.get(c) if SERVICES[c][1] in ("medecine", "chirurgie", "obstetrique", "pediatrie") else None}
                              for c in SERVICES_SITE[SITE_A]])
     bloc_services = yaml.safe_load(services_vers_yaml(services))["services"]
+    # les deux unités de soins intensifs : laquelle pour quelle racine (préfixes)
+    if "UNV" in bloc_services:
+        bloc_services["UNV"]["racines"] = ["01"]
+    if "USIC" in bloc_services:
+        bloc_services["USIC"]["racines"] = ["05"]
     for b in bloc_services.values():
         for k in ("presents_vises",):
             if k in b:
@@ -597,7 +602,8 @@ def ecrire(dossier: Path, graine: int) -> None:
     eff = d.groupby(["ghm", "racine_ghm", "classe_age_duree", "duree_j_cat"]).agg(n=("duree_e", "size"), total=("duree_e", lambda x: float(x[x > 60].sum()))).reset_index()
     eff = eff.rename(columns={"duree_j_cat": "duree_j"})
     durees_ghm = table_proportions(eff, ["ghm", "racine_ghm", "classe_age_duree"], ["duree_j"],
-                                   replis=[["ghm", "racine_ghm"], ["racine_ghm"]], seuil=SEUIL, contexte=[])
+                                   replis=[["ghm", "racine_ghm"], ["racine_ghm"]], seuil=SEUIL, contexte=[],
+                                   seuil_lissage=1)   # pas de lissage sur des durées (catégories ordonnées) : il allongerait la queue
     durees_ghm["ghm"] = durees_ghm["ghm"].where(durees_ghm["ghm"] != "", durees_ghm["racine_ghm"])
     m60 = eff[eff["duree_j"] == "60+"].groupby("ghm").agg(n=("n", "sum"), total=("total", "sum"))
     durees_ghm = durees_ghm.merge((m60["total"] / m60["n"]).round(1).rename("moyenne_60plus"), left_on="ghm", right_index=True, how="left")

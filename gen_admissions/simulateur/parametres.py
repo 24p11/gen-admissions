@@ -84,6 +84,7 @@ class Service:
     age_min: int | None = None
     age_max: int | None = None
     sexe: str | None = None
+    racines: tuple[str, ...] = ()                      # soins critiques : préfixes de racines accueillis en priorité (UNV : « 01 »)
 
     @property
     def conventionnel(self) -> bool:
@@ -150,6 +151,7 @@ class Structure:
                 age_min=None if b.get("age_min") is None else int(b["age_min"]),
                 age_max=None if b.get("age_max") is None else int(b["age_max"]),
                 sexe=b.get("sexe"),
+                racines=tuple(str(x) for x in (b.get("racines") or [])),
             )
         return cls(
             etablissement=d.get("etablissement", ""), description=d.get("description", ""),

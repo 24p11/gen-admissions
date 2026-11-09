@@ -34,7 +34,13 @@ leur masse totale (la somme de leurs effectifs divisée par l'effectif du
 bloc), puis on la répartit **uniformément** entre elles. Le volume des cas
 rares est ainsi conservé, sans qu'aucune proportion individuelle très petite
 ne soit transmise. Le lissage n'a aucun effet sur le `rang` des tables de
-services, qui ne dépend que de la part.
+services, qui ne dépend que de la part. Il s'applique à l'intérieur d'une même
+situation dans `venues_urgences` (sinon les nombreuses petites lignes
+« hospitalisation × racine » absorberaient la masse des consultations rares), et
+**pas du tout aux tables de durées** (`durees_ghm`, `durees_passage_urgences`,
+`supplement_rang2`) : leurs catégories sont ordonnées, et répartir uniformément la
+masse des durées rares déplacerait les patients vers les durées longues (sur
+l'hôpital fictif, +15 % sur la durée moyenne de séjour).
 
 **Repli.** Quand une case n'existe pas (combinaison jamais observée), le
 simulateur utilise une table plus générale, indiquée dans la colonne
@@ -171,10 +177,15 @@ services:                              # un bloc par service
     specialite: USIC
     lits: 8
     soins_critiques: [usi]
+    racines: ['05']                    # facultatif : quand plusieurs services couvrent le même type (USI cardiologiques
+                                       # et neuro-vasculaires), les préfixes de racines de GHM accueillis en priorité ;
+                                       # à défaut, le service que premier_service_racine associe le plus à la racine
   CARDIO:
     libelle: Cardiologie
     specialite: CARDIO
     lits: 36
+    lits_ouverts: 42                   # facultatif : la capacité que le simulateur utilise (lits réellement disponibles :
+                                       # capacitaire, ou 95e percentile des présents quotidiens) ; sinon lits
     presents_vises: 32                 # nombre moyen de patients présents visé ; sert au calcul des entrées programmées (B1)
   PED:
     libelle: Pédiatrie

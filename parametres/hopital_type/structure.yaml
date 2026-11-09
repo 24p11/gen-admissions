@@ -33,6 +33,8 @@ services:
     soins_critiques:
     - usi
     age_min: 18
+    racines:
+    - '05'
   UNV:
     libelle: Unité neuro-vasculaire
     specialite: UNV
@@ -41,6 +43,8 @@ services:
     soins_critiques:
     - usi
     age_min: 18
+    racines:
+    - '01'
   CARDIO:
     libelle: Cardiologie
     specialite: CARDIO

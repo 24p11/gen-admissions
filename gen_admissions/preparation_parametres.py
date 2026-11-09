@@ -259,7 +259,7 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
                       colonnes_categorie: Sequence[str],
                       replis: Iterable[Sequence[str]] = (),
                       seuil: int | None = None, contexte: Sequence[str] | None = None,
-                      colonnes_lissage: Sequence[str] = ()) -> pd.DataFrame:
+                      colonnes_lissage: Sequence[str] = (), seuil_lissage: int | None = None) -> pd.DataFrame:
     """Table de proportions avec ses lignes de repli.
 
     ``colonnes_bloc`` : contexte du niveau le plus fin ; ``colonnes_categorie`` :
@@ -271,10 +271,10 @@ def table_proportions(effectifs: pd.DataFrame, colonnes_bloc: Sequence[str],
     """
     colonnes_bloc = avec_site(colonnes_bloc, effectifs, contexte)
     colonnes_categorie = list(colonnes_categorie)
-    morceaux = [normaliser(effectifs, colonnes_bloc, colonnes_categorie, seuil=seuil, contexte=[], colonnes_lissage=colonnes_lissage)]
+    morceaux = [normaliser(effectifs, colonnes_bloc, colonnes_categorie, seuil=seuil, contexte=[], colonnes_lissage=colonnes_lissage, seuil_lissage=seuil_lissage)]
     for sous_bloc in replis:
         sous_bloc = avec_site(sous_bloc, effectifs, contexte)
-        morceaux.append(normaliser(effectifs, sous_bloc, colonnes_categorie, seuil=seuil, contexte=[], colonnes_lissage=colonnes_lissage))
+        morceaux.append(normaliser(effectifs, sous_bloc, colonnes_categorie, seuil=seuil, contexte=[], colonnes_lissage=colonnes_lissage, seuil_lissage=seuil_lissage))
     colonnes = colonnes_bloc + colonnes_categorie + ["part"]
     # les colonnes de bloc passent en texte avant la concaténation : les cases vides des replis
     # ne transforment pas un mois « 1 » en « 1.0 »
@@ -772,7 +772,7 @@ def durees_urgences_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None 
     avec séjour (gravité toujours vide), les deux replis coïncident : on dédoublonne."""
     t = table_proportions(effectifs, ["situation", "gravite", "classe_age", "classe_tension"], ["tranche_h"],
                           replis=[["situation", "gravite", "classe_age"], ["situation", "classe_age"]],
-                          seuil=seuil, contexte=contexte)
+                          seuil=seuil, contexte=contexte, seuil_lissage=1)     # pas de lissage : catégories ordonnées (durées)
     cles = [c for c in t.columns if c != "part"]
     return t.drop_duplicates(subset=cles).reset_index(drop=True)
 
@@ -808,7 +808,7 @@ def supplement_depuis_effectifs(effectifs: pd.DataFrame, seuil: int | None = Non
                                 contexte: Sequence[str] | None = None) -> pd.DataFrame:
     """supplement_rang2.csv : bloc classe de tension, repli sur l'ensemble (classe vide)."""
     return table_proportions(effectifs, ["classe_tension"], ["tranche_h"], replis=[[]],
-                             seuil=seuil, contexte=contexte)
+                             seuil=seuil, contexte=contexte, seuil_lissage=1)      # pas de lissage : catégories ordonnées (durées)
 
 
 # ---------------------------------------------------------------------------
